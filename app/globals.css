@@ -1,39 +1,106 @@
 @import "tailwindcss";
 
 :root {
-  --background: #3f3f44; /* графит */
-  --foreground: #ededed; /* обычный текст */
+  /* Typography */
+  --foreground: #e9ecf2;
 
-  /* Цвет кнопок / карточек — старая бумага */
+  /* Existing (used by buttons/cards) */
   --button-foreground: #a79971;
+
+  /* Astral UI palette */
+  --ui-ink: #0b0f1a;
+  --ui-ink-2: #0f1626;
+  --ui-cyan: #36d2ff;
+  --ui-blue: #2a6bff;
+  --ui-violet: #7b4dff;
+  --ui-ember: #ff4a2f;
+  --ui-ember-2: #ff9b3a;
+  --ui-gold: #d7c79a;
 }
 
-@theme inline {
-  --color-background: var(--background);
-  --color-foreground: var(--foreground);
-
-  --font-sans: var(--font-geist-sans);
-  --font-mono: var(--font-geist-mono);
-  --font-buttons: var(--font-buttons);
-}
-
-/* Базовый масштаб */
-html {
-  font-size: clamp(16px, 0.9vw, 18px);
-}
-
+/* Full-height canvas */
 html,
 body {
   height: 100%;
 }
 
 body {
-  background: var(--background);
-  color: var(--foreground);
-  font-family: var(--font-sans), system-ui, -apple-system, Segoe UI, Roboto,
+  margin: 0;
+  font-family: var(--font-geist-sans), system-ui, -apple-system, Segoe UI, Roboto,
     Arial, sans-serif;
+
+  color: var(--foreground);
+  background-color: var(--ui-ink);
+
+  /* Blue → cyan center, with ember flame at the bottom (like the ref) */
+  background-image:
+    radial-gradient(1200px 720px at 50% 18%, rgba(54, 210, 255, 0.22), transparent 65%),
+    radial-gradient(980px 680px at 8% 36%, rgba(42, 107, 255, 0.28), transparent 66%),
+    radial-gradient(980px 680px at 92% 36%, rgba(123, 77, 255, 0.22), transparent 66%),
+    radial-gradient(980px 520px at 50% 112%, rgba(255, 74, 47, 0.34), transparent 62%),
+    radial-gradient(760px 420px at 50% 122%, rgba(255, 155, 58, 0.18), transparent 68%),
+    linear-gradient(180deg, rgba(5, 8, 16, 0.92) 0%, rgba(8, 10, 18, 0.95) 55%, rgba(10, 6, 12, 0.98) 100%);
+
+  background-attachment: fixed;
+  background-repeat: no-repeat;
+
+  position: relative;
+  overflow-x: hidden;
 }
 
-a {
-  color: inherit;
+/* Ember “sparks / bokeh” near the bottom */
+body::before {
+  content: "";
+  position: fixed;
+  inset: 0;
+  pointer-events: none;
+  z-index: -1;
+
+  background-image:
+    radial-gradient(12px 12px at 18% 92%, rgba(255, 155, 58, 0.22), transparent 60%),
+    radial-gradient(18px 18px at 26% 96%, rgba(255, 74, 47, 0.20), transparent 62%),
+    radial-gradient(10px 10px at 38% 90%, rgba(255, 155, 58, 0.18), transparent 62%),
+    radial-gradient(22px 22px at 52% 97%, rgba(255, 74, 47, 0.18), transparent 65%),
+    radial-gradient(14px 14px at 64% 93%, rgba(255, 155, 58, 0.20), transparent 62%),
+    radial-gradient(26px 26px at 78% 96%, rgba(255, 74, 47, 0.16), transparent 70%),
+    radial-gradient(12px 12px at 86% 90%, rgba(255, 155, 58, 0.16), transparent 65%);
+
+  filter: blur(0.2px);
+  opacity: 0.9;
+  mix-blend-mode: screen;
+}
+
+/* Subtle starfield */
+body::after {
+  content: "";
+  position: fixed;
+  inset: 0;
+  pointer-events: none;
+  z-index: -1;
+
+  background-image:
+    radial-gradient(1px 1px at 8% 18%, rgba(255, 255, 255, 0.30), transparent 60%),
+    radial-gradient(1px 1px at 22% 12%, rgba(255, 255, 255, 0.22), transparent 60%),
+    radial-gradient(1px 1px at 36% 24%, rgba(255, 255, 255, 0.20), transparent 60%),
+    radial-gradient(1px 1px at 48% 10%, rgba(255, 255, 255, 0.18), transparent 60%),
+    radial-gradient(1px 1px at 62% 22%, rgba(255, 255, 255, 0.22), transparent 60%),
+    radial-gradient(1px 1px at 74% 14%, rgba(255, 255, 255, 0.18), transparent 60%),
+    radial-gradient(1px 1px at 88% 26%, rgba(255, 255, 255, 0.20), transparent 60%),
+    radial-gradient(1px 1px at 16% 44%, rgba(255, 255, 255, 0.16), transparent 60%),
+    radial-gradient(1px 1px at 44% 52%, rgba(255, 255, 255, 0.14), transparent 60%),
+    radial-gradient(1px 1px at 72% 46%, rgba(255, 255, 255, 0.14), transparent 60%);
+
+  opacity: 0.55;
+}
+
+/* Make sure page sections don't “paint” a flat background over the gradient */
+main,
+section {
+  background: transparent;
+}
+
+/* Smoother focus without neon browser default */
+:focus-visible {
+  outline: 2px solid rgba(54, 210, 255, 0.35);
+  outline-offset: 2px;
 }
