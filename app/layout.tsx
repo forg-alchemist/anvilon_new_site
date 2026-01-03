@@ -1,5 +1,5 @@
 import type { Metadata } from "next";
-import { Geist, Geist_Mono } from "next/font/google";
+import { Geist, Geist_Mono, Ruslan_Display } from "next/font/google";
 import "./globals.css";
 
 const geistSans = Geist({
@@ -10,6 +10,12 @@ const geistSans = Geist({
 const geistMono = Geist_Mono({
   variable: "--font-geist-mono",
   subsets: ["latin"],
+});
+
+const ruslan = Ruslan_Display({
+  variable: "--font-buttons",
+  subsets: ["latin", "cyrillic"],
+  weight: "400",
 });
 
 export const metadata: Metadata = {
@@ -23,12 +29,11 @@ export default function RootLayout({
   children: React.ReactNode;
 }>) {
   return (
-    <html lang="ru" className="h-full bg-[#3f3f44]">
-      <body
-        className={`${geistSans.variable} ${geistMono.variable} antialiased min-h-screen bg-[#3f3f44] text-white`}
-      >
-        {children}
-      </body>
+    <html
+      lang="ru"
+      className={`${geistSans.variable} ${geistMono.variable} ${ruslan.variable} h-full bg-[#3f3f44]`}
+    >
+      <body className="min-h-screen antialiased bg-[#3f3f44]">{children}</body>
     </html>
   );
 }
