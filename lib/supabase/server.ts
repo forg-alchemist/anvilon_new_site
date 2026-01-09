@@ -1,9 +1,8 @@
-// lib/supabaseClient.ts
 import { createClient, type SupabaseClient } from "@supabase/supabase-js";
 
 let cached: SupabaseClient | null = null;
 
-export function getSupabaseClient(): SupabaseClient {
+export function getSupabaseServerClient(): SupabaseClient {
   if (cached) return cached;
 
   const url = process.env.NEXT_PUBLIC_SUPABASE_URL;
@@ -18,6 +17,3 @@ export function getSupabaseClient(): SupabaseClient {
   cached = createClient(url, anon);
   return cached;
 }
-
-// Backward-compatible default export used across the app
-export const supabase = getSupabaseClient();

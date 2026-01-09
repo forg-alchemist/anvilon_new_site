@@ -1,26 +1,33 @@
+// app/library/inhabitants/races/page.tsx
 import { PageShell } from "@/components/PageShell";
-import RaceSlider, { type Race } from "@/components/RaceSlider";
-import { supabase } from "@/lib/supabaseClient";
+import RaceSlider from "@/components/RaceSlider";
+import { getRaces } from "@/lib/data/races";
 
 export default async function RacesPage() {
-  const { data, error } = await supabase
-    .from("races")
-    .select("id, created_at, slug, name, art_bucket, art_path, initiative")
-    .order("created_at", { ascending: true });
+  try {
+    const races = await getRaces();
 
-  return (
-    <PageShell
-      title="Расы"
-      backHref="/library/inhabitants"
-      backLabel="Жители Анвилона"
-    >
-      {error ? (
+    return (
+      <PageShell
+        title="Расы"
+        backHref="/library/inhabitants"
+        backLabel="Жители Анвилона"
+      >
+        <RaceSlider races={races} />
+      </PageShell>
+    );
+  } catch (e) {
+    const msg = e instanceof Error ? e.message : "Неизвестная ошибка";
+    return (
+      <PageShell
+        title="Расы"
+        backHref="/library/inhabitants"
+        backLabel="Жители Анвилона"
+      >
         <div className="rounded-2xl border border-red-500/20 bg-red-500/10 p-4 text-red-200">
-          Ошибка Supabase: {error.message}
+          Ошибка загрузки: {msg}
         </div>
-      ) : (
-        <RaceSlider races={(data ?? []) as Race[]} />
-      )}
-    </PageShell>
-  );
+      </PageShell>
+    );
+  }
 }

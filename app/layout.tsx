@@ -1,16 +1,26 @@
+// app/layout.tsx
 import type { Metadata } from "next";
-import { Geist, Geist_Mono } from "next/font/google";
+import { Geist_Mono, Yeseva_One, Forum } from "next/font/google";
 import "./globals.css";
-import { supabase } from "@/lib/supabaseClient";
-
-const geistSans = Geist({
-  variable: "--font-geist-sans",
-  subsets: ["latin"],
-});
+import { getPageArtUrl } from "@/lib/data/pageArt";
 
 const geistMono = Geist_Mono({
   variable: "--font-geist-mono",
   subsets: ["latin"],
+});
+
+const headingFont = Yeseva_One({
+  variable: "--font-heading",
+  weight: "400",
+  subsets: ["latin", "cyrillic"],
+  display: "swap",
+});
+
+const bodyFont = Forum({
+  variable: "--font-body",
+  weight: "400",
+  subsets: ["latin", "cyrillic"],
+  display: "swap",
 });
 
 export const metadata: Metadata = {
@@ -18,50 +28,29 @@ export const metadata: Metadata = {
   description: "World of Anvilon",
 };
 
-function getPublicImageUrl(bucket?: string | null, path?: string | null) {
-  const base = process.env.NEXT_PUBLIC_SUPABASE_URL;
-  if (!base || !bucket || !path) return "";
-  return `${base}/storage/v1/object/public/${bucket}/${path}`;
-}
-
-async function getGlobalBackgroundUrl() {
-  try {
-    const { data, error } = await supabase
-      .from("page_art")
-      .select("art_bucket, art_page")
-      .eq("page", "Global")
-      .maybeSingle();
-
-    if (error) return "";
-    return getPublicImageUrl(data?.art_bucket, data?.art_page);
-  } catch {
-    return "";
-  }
-}
-
 export default async function RootLayout({
   children,
 }: Readonly<{
   children: React.ReactNode;
 }>) {
-  const bgUrl = await getGlobalBackgroundUrl();
+  const bgUrl = await getPageArtUrl("Global");
 
   return (
-    <html lang="ru" className="h-full">
-      <body className={`${geistSans.variable} ${geistMono.variable} antialiased min-h-screen text-white`}>
-        {/* GLOBAL BACKGROUND (арт из page_art: page=Global) */}
+    <html lang="ru" className="h-full overflow-x-hidden">
+      <body
+        className={`${geistMono.variable} ${headingFont.variable} ${bodyFont.variable} antialiased min-h-screen text-white overflow-x-hidden`}
+      >
         <div
           className="min-h-screen w-full"
           style={{
             backgroundColor: "#070a12",
             backgroundImage: bgUrl ? `url(${bgUrl})` : undefined,
-            backgroundSize: "100% auto", // ключевое: масштаб по ширине экрана
+            backgroundSize: "100% auto",
             backgroundRepeat: "no-repeat",
             backgroundPosition: "center top",
             backgroundAttachment: "fixed",
           }}
         >
-          {/* читаемость + “магический” объем (не убивает арт) */}
           <div
             className="min-h-screen w-full"
             style={{

@@ -4,6 +4,13 @@
   /* Typography */
   --foreground: #e9ecf2;
 
+  /* New typography vars:
+     - headings/buttons: Yeseva One
+     - body text: Forum
+  */
+  --font-heading: "Yeseva One", serif;
+  --font-body: "Forum", serif;
+
   /* Existing (used by buttons/cards) */
   --button-foreground: #a79971;
 
@@ -26,9 +33,7 @@ body {
 
 body {
   margin: 0;
-  font-family: var(--font-geist-sans), system-ui, -apple-system, Segoe UI, Roboto,
-    Arial, sans-serif;
-
+  font-family: var(--font-body);
   color: var(--foreground);
   background-color: var(--ui-ink);
 
@@ -46,6 +51,16 @@ body {
 
   position: relative;
   overflow-x: hidden;
+}
+
+/* Headings default: Yeseva One */
+h1,
+h2,
+h3,
+h4,
+h5,
+h6 {
+  font-family: var(--font-heading);
 }
 
 /* Ember “sparks / bokeh” near the bottom */
