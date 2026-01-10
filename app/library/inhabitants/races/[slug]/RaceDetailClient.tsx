@@ -1,6 +1,9 @@
 "use client";
 
 import { useMemo, useState } from "react";
+import { getRaceSectionsForSlug } from "@/lib/races/sectionRules";
+import type { RaceSectionKey } from "@/lib/races/raceSections";
+import { renderRichText } from "@/lib/ui/richText";
 import { getPublicStorageUrl } from "@/lib/supabase/publicUrl";
 
 export type RaceDetail = {
@@ -24,13 +27,28 @@ export type RaceDetail = {
     origin: string;
 
     /** Теги показываются ТОЛЬКО в подразделе "Происхождение" внутри вкладки "Физиология" */
-    originTags?: string[];
+    originTags: string[];
 
     /** Вкладка "Физиология" (подраздел 3) */
     sociality: string;
 
     archetypes: string;
+    /** Теги-капсулы для "Архетипы и роль персонажа" */
+    archetypeTags: string[];
+
+    /** Текст блока "Характер" для вкладки "Архетипы и роль персонажа" */
+    character: string;
+
     relations: string;
+    /** Теги-капсулы для вкладки "Друзья и враги" */
+    relationshipsTags: string[];
+
+    /** Вкладка "Имена" — общий текст */
+    names: string;
+    /** Вкладка "Имена" — фамилии/родовые имена */
+    surname: string;
+    /** Вкладка "Имена" — особенности построения имен */
+    nameFeatures: string;
   };
 };
 
@@ -42,15 +60,9 @@ export type RaceSkill = {
   artPath: string;
 };
 
-type SectionKey = "about" | "skills" | "map" | "houses";
+type SectionKey = RaceSectionKey;
 type AboutTabKey = "desc" | "phys" | "arch" | "relations" | "names";
 
-const SECTIONS: Array<{ key: SectionKey; label: string; disabled?: boolean }> = [
-  { key: "about", label: "О РАСЕ" },
-  { key: "skills", label: "РАСОВЫЕ НАВЫКИ" },
-  { key: "map", label: "КАРТА ВЛАДЕНИЙ" },
-  { key: "houses", label: "ВЕЛИКИЕ ДОМА", disabled: true },
-];
 
 // ✅ "Происхождение" как отдельную вкладку УДАЛИЛИ.
 // ✅ Теперь оно внутри вкладки "Физиология" как подраздел.
@@ -62,6 +74,27 @@ const ABOUT_TABS: Array<{ key: AboutTabKey; label: string }> = [
   { key: "names", label: "Имена" },
 ];
 
+/**
+ * Разделы страницы расы:
+ * - универсальные (общие для всех рас)
+ * - уникальные для конкретного slug (вставляются правилами)
+ *
+ * ВАЖНО: comingSoon => раздел виден, но недоступен (плашка «СКОРО»).
+ */
+function useRaceSections(slug: string) {
+  return useMemo(() => {
+    const rules = getRaceSectionsForSlug(slug);
+
+    return rules.sections.map((s) => ({
+      key: s.key,
+      label: s.label,
+      disabled: !!s.comingSoon,
+      comingSoon: !!s.comingSoon,
+    }));
+  }, [slug]);
+}
+
+
 export default function RaceDetailClient({
   detail,
   raceSkills,
@@ -69,6 +102,7 @@ export default function RaceDetailClient({
   detail: RaceDetail;
   raceSkills: RaceSkill[];
 }) {
+  const sections = useRaceSections(detail.slug);
   const [section, setSection] = useState<SectionKey>("map");
   const [aboutTab, setAboutTab] = useState<AboutTabKey>("desc");
 
@@ -160,8 +194,12 @@ if (section === "houses") {
         return (
           <div className="flex flex-col gap-8">
             <TextBlock text={detail.about.description} />
+            <div>
             <SubHeader title="Особенности" />
-            <TextBlock text={detail.about.features} />
+            <div className="mt-3">
+              <TextBlock text={detail.about.features} />
+            </div>
+          </div>
           </div>
         );
 
@@ -169,35 +207,76 @@ if (section === "houses") {
         // ✅ Внутри "Физиология" три подраздела: Физиология, Происхождение, Социальность
         return (
           <div className="flex flex-col gap-8">
+            <div>
             <SubHeader title="Физиология" />
-            <TextBlock text={detail.about.physiology} />
+            <div className="mt-3">
+              <TextBlock text={detail.about.physiology} />
+            </div>
+          </div>
 
             <SubHeader title="Происхождение" />
             <TagsRow tags={detail.about.originTags} />
             <TextBlock text={detail.about.origin} />
 
+            <div>
             <SubHeader title="Социальность" />
-            <TextBlock text={detail.about.sociality} />
+            <div className="mt-3">
+              <TextBlock text={detail.about.sociality} />
+            </div>
+          </div>
           </div>
         );
 
       case "arch":
-        return <TextBlock text={detail.about.archetypes} />;
+        return (
+          <div className="flex flex-col gap-8">
+            {detail.about.archetypeTags.length ? <TagsRow tags={detail.about.archetypeTags} /> : null}
+            <TextBlock text={detail.about.archetypes} />
+
+            {detail.about.character.trim().length ? (
+              <>
+                <div>
+            <SubHeader title="Характер" />
+            <div className="mt-3">
+              <TextBlock text={detail.about.character} />
+            </div>
+          </div>
+              </>
+            ) : null}
+          </div>
+        );
 
       case "relations":
-        return <TextBlock text={detail.about.relations} />;
+        return (
+          <div className="flex flex-col gap-8">
+            {detail.about.relationshipsTags.length ? <TagsRow tags={detail.about.relationshipsTags} /> : null}
+            <TextBlock text={detail.about.relations} />
+          </div>
+        );
 
       case "names":
         return (
-          <TextBlock
-            text={`Имена высших эльфов во многом схожи с именами других представителей народа Авэй. Частыми окончаниями их имен являются -эль, -ин, -э, -эр, -иль, -эна, -аль, -эт, -ар, -ир, -ат, -ар. Вместо фамилий высшие эльфы используют название Великого дома, к которому они принадлежат. Поэтому нередко можно встретить двух высших эльфов с одинаковыми именами и принадлежностью к одному дому.
+          <div className="flex flex-col gap-8">
+            <TextBlock text={detail.about.names} />
 
-Для создания уникальности имен они используют сложные комбинации с префиксами и суффиксами: (-)эн-, (-)дор-, (-)мар-, (-)ман-, (-)ил-, (-)эт-, (-)ин-, (-)ан-, (-)лин-, (-)тил-
+            <div>
+            <SubHeader title="Фамилии" />
+            <div className="mt-3">
+              <TextBlock text={detail.about.surname} />
+            </div>
+          </div>
 
-Примеры имен высших эльфов: Эн-Тириль, Айнур-Лин-Далэ, Фрайтир, Брегаэр, Вайлиэль, Традииль, Илуриин, Карнмириэ, Кармиэль, Лихрир и другие. Наличие множества префиксов и суффиксов часто указывает на аристократическое происхождение, но это не всегда точно отражает положение носителя. Можно встретить эльфа низкого сословия с сложным именем или аристократа с простым.
-
-Иногда к имени добавляется окончание "-фэрА" в знак особого уважения. Однако оно используется исключительно в обращении и во время диалога, не являясь постоянной частью имени. Это окончание обычно можно услышать в общении представителей низшего сословия с аристократами или членами Совета, а также при выражении глубокого уважения к собеседнику.`}
-          />
+            {detail.about.nameFeatures.trim().length ? (
+              <>
+                <div>
+            <SubHeader title="Особенности" />
+            <div className="mt-3">
+              <TextBlock text={detail.about.nameFeatures} />
+            </div>
+          </div>
+              </>
+            ) : null}
+          </div>
         );
 default:
         return null;
@@ -324,7 +403,7 @@ default:
             ) : null}
 
             <nav className="grid gap-3">
-              {SECTIONS.map((s) => {
+              {sections.map((s) => {
                 const active = section === s.key;
                 const disabled = !!s.disabled;
 
@@ -619,7 +698,7 @@ function RaceSkillPanel({ skill }: { skill: RaceSkill }) {
             className="pt-1 leading-[1.75] text-white/75 whitespace-pre-line"
             style={{ fontSize: "clamp(16px, 1.05vw, 18px)" }}
           >
-            {skill.description}
+            {renderRichText(skill.description)}
           </div>
         </div>
       </div>
@@ -716,7 +795,7 @@ function RaceSkillCard({ skill }: { skill: RaceSkill }) {
           }}
         >
           <div className="pt-1 text-[18px] leading-[1.75] text-white/75">
-            {skill.description}
+            {renderRichText(skill.description)}
           </div>
         </div>
       </div>
@@ -845,7 +924,9 @@ function TagsRow({ tags }: { tags?: string[] }) {
   );
 }
 
-function TextBlock({ text }: { text: string }) {
+function TextBlock({ text }: { text?: string | null }) {
+  if (!text) return null;
+
   return (
     <div
       className="rounded-2xl border border-white/10 bg-black/25 p-5 lg:p-3"
@@ -858,7 +939,8 @@ function TextBlock({ text }: { text: string }) {
         whiteSpace: "pre-line",
       }}
     >
-      {text}
+      {renderRichText(text)}
     </div>
   );
 }
+

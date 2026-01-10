@@ -9,10 +9,12 @@ export type Race = {
   name: string;
   artUrl: string;
   initiative: number | null;
+  /** Если TRUE — раса кликабельна. Если FALSE — "Скоро" и без перехода */
+  available?: boolean | null;
 };
 
-// Временно: готовые страницы рас. Остальные показываем как "СКОРО".
-const READY_SLUGS = new Set<string>(["high-elf"]);
+// На старых данных поле available могло отсутствовать — тогда используем fallback.
+const READY_SLUGS_FALLBACK = new Set<string>(["high-elf"]);
 
 function CornerArrow({ dir }: { dir: "left" | "right" }) {
   const rotate = dir === "right" ? "rotate(180deg)" : "none";
@@ -166,7 +168,7 @@ function FitTitle({ text, fontFamily, color }: FitTitleProps) {
 function RaceCard({ race }: { race: Race }) {
   const img = race.artUrl || "";
   const href = `/library/inhabitants/races/${race.slug}`;
-  const isReady = READY_SLUGS.has(race.slug);
+  const isReady = (race.available ?? null) === null ? READY_SLUGS_FALLBACK.has(race.slug) : !!race.available;
 
   // Размер карточки: из высоты арта выводим ширину 9:16
   const artHeightCss = "min(62vh, 720px)";

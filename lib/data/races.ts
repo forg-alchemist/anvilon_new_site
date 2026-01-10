@@ -8,6 +8,7 @@ export type RaceRow = {
   art_bucket: string | null;
   art_path: string | null;
   initiative: number | null;
+  available?: boolean | null;
   created_at?: string;
 };
 
@@ -20,7 +21,7 @@ export async function getRaces(): Promise<RaceListItem[]> {
 
   const { data, error } = await supabase
     .from("races")
-    .select("id, slug, name, art_bucket, art_path, initiative, created_at")
+    .select("id, slug, name, art_bucket, art_path, initiative, available, created_at")
     .order("created_at", { ascending: true });
 
   if (error) throw new Error(error.message);
@@ -37,7 +38,7 @@ export async function getRaceBySlug(slug: string): Promise<RaceListItem | null> 
 
   const { data, error } = await supabase
     .from("races")
-    .select("id, slug, name, art_bucket, art_path, initiative, created_at")
+    .select("id, slug, name, art_bucket, art_path, initiative, available, created_at")
     .eq("slug", slug)
     .maybeSingle();
 
