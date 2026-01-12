@@ -1,4 +1,7 @@
 // app/library/inhabitants/races/page.tsx
+export const dynamic = "force-dynamic";
+export const revalidate = 0;
+
 import { PageShell } from "@/components/PageShell";
 import RaceSlider from "@/components/RaceSlider";
 import { getRaces } from "@/lib/data/races";

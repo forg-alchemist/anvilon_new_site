@@ -2,7 +2,8 @@ import { PageShell } from "@/components/PageShell";
 import { getSupabaseServerClient } from "@/lib/supabase/server";
 import { getPublicStorageUrl } from "@/lib/supabase/publicUrl";
 
-import RaceDetailClient, { type RaceDetail, type RaceSkill } from "./RaceDetailClient";
+import RaceDetailClient from "./RaceDetailClient";
+import type { RaceDetail, RaceSkill } from "./types";
 import { getRaceSkillsBySlug } from "@/lib/data/raceSkills";
 import { getRaceMapBySlug } from "@/lib/data/raceMap";
 import { getRaceInfoBySlug } from "@/lib/data/raceInfo";
