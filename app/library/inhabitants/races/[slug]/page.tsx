@@ -8,6 +8,7 @@ import { getRaceSkillsBySlug } from "@/lib/data/raceSkills";
 import { getRaceMapBySlug } from "@/lib/data/raceMap";
 import { getRaceInfoBySlug } from "@/lib/data/raceInfo";
 import { getGreatHouses } from "@/lib/data/greatHouses";
+import { getRaceHistoryBySlug } from "@/lib/data/raceHistory";
 
 function parseTags(raw?: string | null): string[] {
   if (!raw) return [];
@@ -84,7 +85,17 @@ export default async function RacePage({
 
   }
 
-  // 4) great houses — пока только для высших эльфов
+  
+  // 4) history — мягко (если нет/ошибка)
+  let history: Awaited<ReturnType<typeof getRaceHistoryBySlug>> = [];
+  try {
+    history = await getRaceHistoryBySlug(slug);
+  } catch {
+    history = [];
+  }
+
+  // 5) great houses — пока только для высших эльфов
+
   let greatHouses: Awaited<ReturnType<typeof getGreatHouses>> = [];
   if (slug === "high-elf") {
     try {
@@ -134,7 +145,7 @@ export default async function RacePage({
 
   return (
     <PageShell title={r.name} backHref="/library/inhabitants/races" backLabel="Жители Анвилона">
-      <RaceDetailClient detail={detail} raceSkills={raceSkills} greatHouses={greatHouses} />
+      <RaceDetailClient detail={detail} raceSkills={raceSkills} greatHouses={greatHouses} history={history} />
     </PageShell>
   );
 }

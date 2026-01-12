@@ -7,10 +7,12 @@ import type { RaceSectionKey } from "@/lib/races/raceSections";
 import { renderRichText } from "@/lib/ui/richText";
 import { getPublicStorageUrl } from "@/lib/supabase/publicUrl";
 import type { RaceDetail, RaceSkill, AboutTabKey, HouseTabKey } from "./types";
+import type { RaceHistorySection } from "@/lib/data/raceHistory";
 import AboutSection from "./sections/AboutSection";
 import SkillsSection from "./sections/SkillsSection";
 import MapSection from "./sections/MapSection";
 import GreatHousesSection from "./sections/GreatHousesSection";
+import HistorySection from "./sections/HistorySection";
 
 const ABOUT_TABS: Array<{ key: AboutTabKey; label: string }> = [
   { key: "desc", label: "Описание расы" },
@@ -45,10 +47,12 @@ export default function RaceDetailClient({
   detail,
   raceSkills,
   greatHouses,
+  history,
 }: {
   detail: RaceDetail;
   raceSkills: RaceSkill[];
   greatHouses: GreatHouseItem[];
+  history: RaceHistorySection[];
 }) {
   const sections = useRaceSections(detail.slug);
   const [section, setSection] = useState<RaceSectionKey>("map");
@@ -126,6 +130,19 @@ if (section === "houses") {
 
 
 
+
+if (section === "history") {
+  if (!history || history.length === 0) {
+    return (
+      <div className="rounded-2xl border border-white/10 bg-white/[0.04] p-6 text-white/75">
+        Этот раздел пока пустой — заполним позже.
+      </div>
+    );
+  }
+
+  return <HistorySection history={history} />;
+}
+
 if (section !== "about") {
       return (
         <div className="rounded-2xl border border-white/10 bg-white/[0.04] p-6 text-white/75">
@@ -136,7 +153,7 @@ if (section !== "about") {
 
     return <AboutSection detail={detail} aboutTab={aboutTab} />;
 
-  }, [section, aboutTab, skillIndex, detail, raceSkills, greatHouses, activeHouseId, hoveredHouseId, houseTab, houseTooltip, goldFrameUrl]);
+  }, [section, aboutTab, skillIndex, detail, raceSkills, greatHouses, history, activeHouseId, hoveredHouseId, houseTab, houseTooltip, goldFrameUrl]);
   const ink = "rgba(235, 245, 255, 0.92)";
   const inkSoft = "rgba(214, 230, 255, 0.75)";
   const line = "rgba(255,255,255,0.10)";

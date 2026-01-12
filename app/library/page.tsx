@@ -15,8 +15,8 @@ export default async function LibraryPage() {
       <div className="grid gap-6 md:grid-cols-3">
         <NavButton
           title="Правила"
-          subtitle="Скоро"
-          href={undefined}
+          subtitle="Руководство"
+          href="/library/rules"
           artUrl={rulesArt}
         />
         <NavButton

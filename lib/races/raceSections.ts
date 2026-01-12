@@ -8,6 +8,7 @@
 export type RaceSectionKey =
   | "about"
   | "skills"
+  | "r_classes"
   | "map"
   | "houses"
   | "history"

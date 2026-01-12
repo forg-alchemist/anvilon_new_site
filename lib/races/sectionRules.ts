@@ -8,10 +8,11 @@ import type { InsertRule, RaceRules, RaceSectionRule } from "./raceSections";
 const UNIVERSAL_SECTIONS: RaceSectionRule[] = [
   { key: "about", label: "О РАСЕ" },
   { key: "skills", label: "РАСОВЫЕ НАВЫКИ" },
+  { key: "r_classes", label: "РАСОВЫЕ КЛАССЫ" },
   { key: "map", label: "КАРТА ВЛАДЕНИЙ" },
+  { key: "history", label: "ИСТОРИЯ РАСЫ"},
 
   // Общие разделы для всех рас (пока закрыты)
-  { key: "history", label: "ИСТОРИЯ РАСЫ", comingSoon: true },
   { key: "religion", label: "РЕЛИГИЯ", comingSoon: true },
 ];
 
@@ -23,7 +24,7 @@ const INSERTIONS: Record<string, InsertRule[]> = {
   // Высший эльф: уникальный раздел «Великие дома» идёт после «Расовые навыки»
   "high-elf": [
     {
-      after: "skills",
+      after: "r_classes",
       section: { key: "houses", label: "ВЕЛИКИЕ ДОМА"},
     },
   ],
@@ -31,7 +32,7 @@ const INSERTIONS: Record<string, InsertRule[]> = {
   // Лунный эльф: уникальные разделы после «Расовые навыки»
   "moon-elf": [
     {
-      after: "skills",
+      after: "r_classes",
       section: { key: "moon-clans", label: "РОДА ЛУННЫХ ЭЛЬФОВ", comingSoon: true },
     },
     {
@@ -43,7 +44,7 @@ const INSERTIONS: Record<string, InsertRule[]> = {
   // Лесной эльф: уникальный раздел после «Расовые навыки»
   "wood-elf": [
     {
-      after: "skills",
+      after: "r_classes",
       section: { key: "institutions", label: "ВАЖНЫЕ СОЦИАЛЬНЫЕ ИНСТИТУТЫ", comingSoon: true },
     },
   ],
