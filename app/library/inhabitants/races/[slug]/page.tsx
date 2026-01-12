@@ -9,6 +9,7 @@ import { getRaceMapBySlug } from "@/lib/data/raceMap";
 import { getRaceInfoBySlug } from "@/lib/data/raceInfo";
 import { getGreatHouses } from "@/lib/data/greatHouses";
 import { getRaceHistoryBySlug } from "@/lib/data/raceHistory";
+import { getRaceClassesWithSkills } from "@/lib/data/classes";
 
 function parseTags(raw?: string | null): string[] {
   if (!raw) return [];
@@ -52,7 +53,11 @@ export default async function RacePage({
 
   if (raceErr) {
     return (
-      <PageShell title="Раса" backHref="/library/inhabitants/races" backLabel="Жители Анвилона">
+      <PageShell
+        title="Раса"
+        backHref="/library/inhabitants/races"
+        backLabel="Жители Анвилона"
+      >
         <div className="rounded-2xl border border-red-500/25 bg-red-500/10 p-4 text-red-200">
           Ошибка загрузки races по slug <b>{slug}</b>: {raceErr.message}
         </div>
@@ -62,7 +67,11 @@ export default async function RacePage({
 
   if (!race) {
     return (
-      <PageShell title="Раса не найдена" backHref="/library/inhabitants/races" backLabel="Жители Анвилона">
+      <PageShell
+        title="Раса не найдена"
+        backHref="/library/inhabitants/races"
+        backLabel="Жители Анвилона"
+      >
         <div className="rounded-2xl border border-white/10 bg-white/[0.04] p-6">
           В таблице <b>races</b> нет записи со slug <b>{slug}</b>.
         </div>
@@ -76,17 +85,15 @@ export default async function RacePage({
   // 2) race_info (текстовые блоки) — НЕ валим страницу, если нет/ошибка
   const info = await getRaceInfoBySlug(slug).catch(() => null);
 
-  // 3) skills / map — тоже мягко
+  // 3) skills — мягко
   let raceSkills: RaceSkill[] = [];
   try {
     raceSkills = await getRaceSkillsBySlug(slug);
   } catch {
     raceSkills = [];
-
   }
 
-  
-  // 4) history — мягко (если нет/ошибка)
+  // 4) history — мягко
   let history: Awaited<ReturnType<typeof getRaceHistoryBySlug>> = [];
   try {
     history = await getRaceHistoryBySlug(slug);
@@ -95,7 +102,6 @@ export default async function RacePage({
   }
 
   // 5) great houses — пока только для высших эльфов
-
   let greatHouses: Awaited<ReturnType<typeof getGreatHouses>> = [];
   if (slug === "high-elf") {
     try {
@@ -105,6 +111,15 @@ export default async function RacePage({
     }
   }
 
+  // 6) расовые классы (class + class_skill) — мягко
+  let raceClasses: Awaited<ReturnType<typeof getRaceClassesWithSkills>> = [];
+  try {
+    raceClasses = await getRaceClassesWithSkills(slug);
+  } catch {
+    raceClasses = [];
+  }
+
+  // 7) map — мягко
   let mapUrl = "";
   try {
     const mapRow = await getRaceMapBySlug(slug);
@@ -144,8 +159,18 @@ export default async function RacePage({
   };
 
   return (
-    <PageShell title={r.name} backHref="/library/inhabitants/races" backLabel="Жители Анвилона">
-      <RaceDetailClient detail={detail} raceSkills={raceSkills} greatHouses={greatHouses} history={history} />
+    <PageShell
+      title={r.name}
+      backHref="/library/inhabitants/races"
+      backLabel="Жители Анвилона"
+    >
+      <RaceDetailClient
+        detail={detail}
+        raceSkills={raceSkills}
+        raceClasses={raceClasses}
+        greatHouses={greatHouses}
+        history={history}
+      />
     </PageShell>
   );
 }

@@ -8,11 +8,13 @@ import { renderRichText } from "@/lib/ui/richText";
 import { getPublicStorageUrl } from "@/lib/supabase/publicUrl";
 import type { RaceDetail, RaceSkill, AboutTabKey, HouseTabKey } from "./types";
 import type { RaceHistorySection } from "@/lib/data/raceHistory";
+import type { GameClassWithSkills } from "@/lib/data/classes";
 import AboutSection from "./sections/AboutSection";
 import SkillsSection from "./sections/SkillsSection";
 import MapSection from "./sections/MapSection";
 import GreatHousesSection from "./sections/GreatHousesSection";
 import HistorySection from "./sections/HistorySection";
+import RaceClassesSection from "./sections/RaceClassesSection";
 
 const ABOUT_TABS: Array<{ key: AboutTabKey; label: string }> = [
   { key: "desc", label: "Описание расы" },
@@ -46,17 +48,34 @@ function useRaceSections(slug: string) {
 export default function RaceDetailClient({
   detail,
   raceSkills,
+  raceClasses,
   greatHouses,
   history,
 }: {
   detail: RaceDetail;
   raceSkills: RaceSkill[];
+  raceClasses: GameClassWithSkills[];
   greatHouses: GreatHouseItem[];
   history: RaceHistorySection[];
 }) {
   const sections = useRaceSections(detail.slug);
   const [section, setSection] = useState<RaceSectionKey>("map");
   const [aboutTab, setAboutTab] = useState<AboutTabKey>("desc");
+  const [activeClassId, setActiveClassId] = useState<string | null>(
+    raceClasses?.[0]?.id ?? null
+  );
+
+  // Если список классов поменялся (или пришёл позже) — выставим первую вкладку
+  useEffect(() => {
+    if (!raceClasses || raceClasses.length === 0) {
+      setActiveClassId(null);
+      return;
+    }
+    setActiveClassId((prev) => {
+      if (prev && raceClasses.some((c) => c.id === prev)) return prev;
+      return raceClasses[0].id;
+    });
+  }, [raceClasses]);
 
   // Великие дома: выбранный дом + вкладка панели
   const [activeHouseId, setActiveHouseId] = useState<string | null>(null);
@@ -103,6 +122,11 @@ if (section === "skills") {
   );
 }
 
+// ====== РАСОВЫЕ КЛАССЫ ======
+if (section === "r_classes") {
+  return <RaceClassesSection classes={raceClasses} activeId={activeClassId} />;
+}
+
 
     // ====== О РАСЕ ======
     if (section === "map") {
@@ -143,6 +167,11 @@ if (section === "history") {
   return <HistorySection history={history} />;
 }
 
+// ====== РАСОВЫЕ КЛАССЫ ======
+if (section === "r_classes") {
+  return <RaceClassesSection classes={raceClasses} activeId={activeClassId} />;
+}
+
 if (section !== "about") {
       return (
         <div className="rounded-2xl border border-white/10 bg-white/[0.04] p-6 text-white/75">
@@ -153,7 +182,7 @@ if (section !== "about") {
 
     return <AboutSection detail={detail} aboutTab={aboutTab} />;
 
-  }, [section, aboutTab, skillIndex, detail, raceSkills, greatHouses, history, activeHouseId, hoveredHouseId, houseTab, houseTooltip, goldFrameUrl]);
+  }, [section, aboutTab, skillIndex, detail, raceSkills, raceClasses, activeClassId, greatHouses, history, activeHouseId, hoveredHouseId, houseTab, houseTooltip, goldFrameUrl]);
   const ink = "rgba(235, 245, 255, 0.92)";
   const inkSoft = "rgba(214, 230, 255, 0.75)";
   const line = "rgba(255,255,255,0.10)";
@@ -410,6 +439,54 @@ if (section !== "about") {
                         }}
                       >
                         {t.label}
+                      </span>
+                    </button>
+                  );
+                })}
+              </div>
+            </div>
+          )}
+
+          {section === "r_classes" && (
+            <div className="px-6 pt-6 lg:px-8 lg:pt-7">
+              <div className="flex flex-wrap gap-3">
+                {(raceClasses ?? []).map((c) => {
+                  const active = activeClassId === c.id;
+                  return (
+                    <button
+                      key={c.id}
+                      type="button"
+                      onClick={() => setActiveClassId(c.id)}
+                      className="rounded-full border px-2.5 py-1.5 transition"
+                      style={{
+                        borderColor: active
+                          ? "rgba(244, 214, 123, 0.38)"
+                          : "rgba(255,255,255,0.10)",
+                        background: active
+                          ? `
+                            radial-gradient(140% 140% at 50% 0%, ${goldSoft}, rgba(0,0,0,0) 62%),
+                            linear-gradient(180deg, rgba(0,0,0,0.52), rgba(0,0,0,0.22))
+                          `
+                          : "rgba(0,0,0,0.25)",
+                        boxShadow: active
+                          ? `0 12px 28px rgba(0,0,0,0.55), 0 0 22px ${goldSoft}`
+                          : "0 10px 24px rgba(0,0,0,0.40)",
+                        backdropFilter: "blur(10px)",
+                      }}
+                    >
+                      <span
+                        style={{
+                          fontFamily: "var(--font-buttons)",
+                          fontSize: 14,
+                          textTransform: "uppercase",
+                          letterSpacing: "0.18em",
+                          color: active ? ink : inkSoft,
+                          textShadow: active
+                            ? `0 0 14px ${goldSoft}, 0 2px 16px rgba(0,0,0,0.85)`
+                            : "0 2px 14px rgba(0,0,0,0.8)",
+                        }}
+                      >
+                        {c.name}
                       </span>
                     </button>
                   );
