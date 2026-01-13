@@ -4,6 +4,7 @@ export type RaceInfoRow = {
   id: string;
   created_at: string;
   slug: string;
+  tags: string | null;
 
   description: string | null;
   peculiarities: string | null;
@@ -33,7 +34,7 @@ export async function getRaceInfoBySlug(slug: string): Promise<RaceInfoRow | nul
   const { data, error } = await supabase
     .from("race_info")
     .select(
-      "id, created_at, slug, description, peculiarities, physiology, origin_tags, origin, sociality, archetype_tags, archetype, relationships_tags, relationships, names, surname, name_features, character"
+      "id, created_at, slug, tags, description, peculiarities, physiology, origin_tags, origin, sociality, archetype_tags, archetype, relationships_tags, relationships, names, surname, name_features, character"
     )
     .eq("slug", slug)
     .maybeSingle();

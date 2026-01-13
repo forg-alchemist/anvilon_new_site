@@ -3,6 +3,7 @@
 import React, { useEffect, useMemo, useState } from "react";
 import { getPublicStorageUrl } from "@/lib/supabase/publicUrl";
 import { TextBlock } from "./_shared";
+import { renderRichText } from "@/lib/ui/richText";
 import type { GameClassWithSkills, ClassSkill } from "@/lib/data/classes";
 
 function toUpperSafe(s?: string | null) {
@@ -143,7 +144,20 @@ function ClassSkillsBlock({
           >
 
             <div className="mt-3">
-              <TextBlock text={active.description ?? ""} />
+              {active.description ? (
+                <div
+                  style={{
+                    color: "rgba(235, 245, 255, 0.90)",
+                    fontSize: 18,
+                    lineHeight: 1.65,
+                    whiteSpace: "pre-line",
+                  }}
+                >
+                  {renderRichText(active.description)}
+                </div>
+              ) : (
+                <div className="text-sm text-white/45">Нет описания</div>
+              )}
             </div>
           </div>
         </div>

@@ -59,7 +59,7 @@ export default function RaceDetailClient({
   history: RaceHistorySection[];
 }) {
   const sections = useRaceSections(detail.slug);
-  const [section, setSection] = useState<RaceSectionKey>("map");
+  const [section, setSection] = useState<RaceSectionKey>("about");
   const [aboutTab, setAboutTab] = useState<AboutTabKey>("desc");
   const [activeClassId, setActiveClassId] = useState<string | null>(
     raceClasses?.[0]?.id ?? null
@@ -113,6 +113,15 @@ export default function RaceDetailClient({
   const initUrl = getPublicStorageUrl("art", "UI_UX/Init.png");
   const goldFrameUrl = getPublicStorageUrl("art", "UI_UX/GoldFrame.png");
   const [skillIndex, setSkillIndex] = useState(0);
+
+  // При переходе между расами (например, со слайдера) сбрасываем секцию на "О расе",
+  // чтобы не наследовать прошлое состояние UI.
+  useEffect(() => {
+    setSection("about");
+    setAboutTab("desc");
+    setSkillIndex(0);
+  }, [detail.slug]);
+
 
   const content = useMemo(() => {
     // ====== РАСОВЫЕ НАВЫКИ ======

@@ -138,6 +138,7 @@ export default async function RacePage({
     // ======= вкладки “О расе” из race_info =======
     about: {
       description: info?.description ?? "",
+      descriptionTags: parseTags(info?.tags),
       features: info?.peculiarities ?? "",
       physiology: info?.physiology ?? "",
       origin: info?.origin ?? "",
