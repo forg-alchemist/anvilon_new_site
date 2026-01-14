@@ -7,9 +7,11 @@ import { SubHeader, TagsRow, TextBlock } from "./_shared";
 export default function AboutSection({
   detail,
   aboutTab,
+  setAboutTab,
 }: {
   detail: RaceDetail;
   aboutTab: AboutTabKey;
+  setAboutTab?: (k: AboutTabKey) => void;
 }) {
   if (false /* section guard moved to parent */) {
         return (
@@ -24,9 +26,6 @@ export default function AboutSection({
           // ✅ ДВА РАЗНЫХ текстовых блока: description + features
           return (
             <div className="flex flex-col gap-8">
-              {detail.about.descriptionTags?.length ? (
-                <TagsRow tags={detail.about.descriptionTags} />
-              ) : null}
               <TextBlock text={detail.about.description} />
               <div>
               <SubHeader title="Особенности" />

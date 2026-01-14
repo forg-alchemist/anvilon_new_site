@@ -33,7 +33,7 @@ const INSERTIONS: Record<string, InsertRule[]> = {
   "moon-elf": [
     {
       after: "r_classes",
-      section: { key: "moon-clans", label: "РОДА ЛУННЫХ ЭЛЬФОВ", comingSoon: true },
+      section: { key: "moon-clans", label: "РОДА ЛУННЫХ ЭЛЬФОВ", comingSoon: false },
     },
     {
       after: "moon-clans",

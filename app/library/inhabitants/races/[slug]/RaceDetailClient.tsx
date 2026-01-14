@@ -13,6 +13,8 @@ import AboutSection from "./sections/AboutSection";
 import SkillsSection from "./sections/SkillsSection";
 import MapSection from "./sections/MapSection";
 import GreatHousesSection from "./sections/GreatHousesSection";
+import MoonElfFamiliesSection from "./sections/MoonElfFamiliesSection";
+import type { MoonElfFamilyItem } from "@/lib/data/moonElfFamilies";
 import HistorySection from "./sections/HistorySection";
 import RaceClassesSection from "./sections/RaceClassesSection";
 
@@ -51,16 +53,26 @@ export default function RaceDetailClient({
   raceClasses,
   greatHouses,
   history,
+  moonFamilies,
 }: {
   detail: RaceDetail;
   raceSkills: RaceSkill[];
   raceClasses: GameClassWithSkills[];
   greatHouses: GreatHouseItem[];
   history: RaceHistorySection[];
+  moonFamilies: MoonElfFamilyItem[];
 }) {
   const sections = useRaceSections(detail.slug);
   const [section, setSection] = useState<RaceSectionKey>("about");
   const [aboutTab, setAboutTab] = useState<AboutTabKey>("desc");
+
+  // При смене расы (переход со слайдера) — всегда открываем «О расе»
+  useEffect(() => {
+    setSection("about");
+    setAboutTab("desc");
+    setSkillIndex(0);
+  }, [detail.slug]);
+
   const [activeClassId, setActiveClassId] = useState<string | null>(
     raceClasses?.[0]?.id ?? null
   );
@@ -88,6 +100,11 @@ export default function RaceDetailClient({
     y: number;
   }>({ visible: false, text: "", x: 0, y: 0 });
 
+  // Рода лунных эльфов
+  const [activeMoonFamilyId, setActiveMoonFamilyId] = useState<string | null>(null);
+  const [moonFamilyTab, setMoonFamilyTab] = useState<import("./sections/MoonElfFamiliesSection").MoonFamilyTabKey>("description");
+
+
   // Кол-во колонок для сетки Великих домов (должно соответствовать классам сетки).
   // ВАЖНО: hooks должны быть ТОЛЬКО на верхнем уровне компонента.
   const getHouseGridCols = () => {
@@ -114,15 +131,6 @@ export default function RaceDetailClient({
   const goldFrameUrl = getPublicStorageUrl("art", "UI_UX/GoldFrame.png");
   const [skillIndex, setSkillIndex] = useState(0);
 
-  // При переходе между расами (например, со слайдера) сбрасываем секцию на "О расе",
-  // чтобы не наследовать прошлое состояние UI.
-  useEffect(() => {
-    setSection("about");
-    setAboutTab("desc");
-    setSkillIndex(0);
-  }, [detail.slug]);
-
-
   const content = useMemo(() => {
     // ====== РАСОВЫЕ НАВЫКИ ======
 if (section === "skills") {
@@ -142,6 +150,18 @@ if (section === "r_classes") {
   return <MapSection detail={detail} />;
 }
 
+
+if (section === "moon-clans") {
+  return (
+    <MoonElfFamiliesSection
+      families={moonFamilies}
+      activeId={activeMoonFamilyId}
+      setActiveId={setActiveMoonFamilyId}
+      tab={moonFamilyTab}
+      setTab={setMoonFamilyTab}
+    />
+  );
+}
 
 if (section === "houses") {
   return (
@@ -191,7 +211,7 @@ if (section !== "about") {
 
     return <AboutSection detail={detail} aboutTab={aboutTab} />;
 
-  }, [section, aboutTab, skillIndex, detail, raceSkills, raceClasses, activeClassId, greatHouses, history, activeHouseId, hoveredHouseId, houseTab, houseTooltip, goldFrameUrl]);
+  }, [section, aboutTab, skillIndex, detail, raceSkills, raceClasses, activeClassId, greatHouses, history, moonFamilyTab, activeMoonFamilyId, moonFamilies, activeHouseId, hoveredHouseId, houseTab, houseTooltip, goldFrameUrl]);
   const ink = "rgba(235, 245, 255, 0.92)";
   const inkSoft = "rgba(214, 230, 255, 0.75)";
   const line = "rgba(255,255,255,0.10)";

@@ -10,6 +10,7 @@ import { getRaceInfoBySlug } from "@/lib/data/raceInfo";
 import { getGreatHouses } from "@/lib/data/greatHouses";
 import { getRaceHistoryBySlug } from "@/lib/data/raceHistory";
 import { getRaceClassesWithSkills } from "@/lib/data/classes";
+import { getMoonElfFamilies } from "@/lib/data/moonElfFamilies";
 
 function parseTags(raw?: string | null): string[] {
   if (!raw) return [];
@@ -128,7 +129,11 @@ export default async function RacePage({
     mapUrl = "";
   }
 
-  const detail: RaceDetail = {
+  
+  // ======= Рода лунных эльфов (moon_elf_fam) =======
+  const moonFamilies = slug === "moon-elf" ? await getMoonElfFamilies() : [];
+
+const detail: RaceDetail = {
     slug: r.slug,
     name: r.name,
     artUrl,
@@ -138,7 +143,6 @@ export default async function RacePage({
     // ======= вкладки “О расе” из race_info =======
     about: {
       description: info?.description ?? "",
-      descriptionTags: parseTags(info?.tags),
       features: info?.peculiarities ?? "",
       physiology: info?.physiology ?? "",
       origin: info?.origin ?? "",
@@ -171,6 +175,7 @@ export default async function RacePage({
         raceClasses={raceClasses}
         greatHouses={greatHouses}
         history={history}
+        moonFamilies={moonFamilies}
       />
     </PageShell>
   );

@@ -11,9 +11,6 @@ export type RaceDetail = {
     /** Вкладка "Описание расы" (первый текстовый блок) */
     description: string;
 
-    /** Теги для "Описание расы" (выводятся перед описанием) */
-    descriptionTags: string[];
-
     /** Вкладка "Описание расы" (второй текстовый блок под заголовком "Особенности") */
     features: string;
 
@@ -60,6 +57,8 @@ export type RaceSkill = {
 export type AboutTabKey = "desc" | "phys" | "arch" | "relations" | "names";
 
 export type HouseTabKey = "description" | "members" | "bonus" | "tradition";
+export type MoonElfFamilyTabKey = "description" | "bonus" | "story";
+
 
 
 
