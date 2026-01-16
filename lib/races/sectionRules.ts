@@ -42,7 +42,7 @@ const INSERTIONS: Record<string, InsertRule[]> = {
   ],
 
   // Лесной эльф: уникальный раздел после «Расовые навыки»
-  "wood-elf": [
+  "forest-elf": [
     {
       after: "r_classes",
       section: { key: "institutions", label: "ВАЖНЫЕ СОЦИАЛЬНЫЕ ИНСТИТУТЫ", comingSoon: true },
