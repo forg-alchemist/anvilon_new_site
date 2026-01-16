@@ -15,6 +15,8 @@ import MapSection from "./sections/MapSection";
 import GreatHousesSection from "./sections/GreatHousesSection";
 import MoonElfFamiliesSection from "./sections/MoonElfFamiliesSection";
 import type { MoonElfFamilyItem } from "@/lib/data/moonElfFamilies";
+import LegendarySquadsSection from "./sections/LegendarySquadsSection";
+import type { MoonSquadItem, MoonSquadPersonItem } from "@/lib/data/moonSquad";
 import HistorySection from "./sections/HistorySection";
 import RaceClassesSection from "./sections/RaceClassesSection";
 
@@ -54,6 +56,7 @@ export default function RaceDetailClient({
   greatHouses,
   history,
   moonFamilies,
+  moonSquads,
 }: {
   detail: RaceDetail;
   raceSkills: RaceSkill[];
@@ -61,6 +64,7 @@ export default function RaceDetailClient({
   greatHouses: GreatHouseItem[];
   history: RaceHistorySection[];
   moonFamilies: MoonElfFamilyItem[];
+  moonSquads: Array<MoonSquadItem & { persons: MoonSquadPersonItem[] }>;
 }) {
   const sections = useRaceSections(detail.slug);
   const [section, setSection] = useState<RaceSectionKey>("about");
@@ -104,6 +108,8 @@ export default function RaceDetailClient({
   const [activeMoonFamilyId, setActiveMoonFamilyId] = useState<string | null>(null);
   const [moonFamilyTab, setMoonFamilyTab] = useState<import("./sections/MoonElfFamiliesSection").MoonFamilyTabKey>("description");
 
+  const [activeMoonSquadId, setActiveMoonSquadId] = useState<string | null>(null);
+
 
   // Кол-во колонок для сетки Великих домов (должно соответствовать классам сетки).
   // ВАЖНО: hooks должны быть ТОЛЬКО на верхнем уровне компонента.
@@ -126,6 +132,26 @@ export default function RaceDetailClient({
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, []);
 
+  // Кол-во колонок для сетки легендарных отрядов (1 / 2 / 3).
+  const getSquadGridCols = () => {
+    if (typeof window === "undefined") return 3;
+    const w = window.innerWidth;
+    if (w >= 1024) return 3; // lg
+    if (w >= 768) return 2; // md
+    return 1;
+  };
+
+  // Legendary squads are displayed as an approved 2x2 tile grid.
+  const [squadGridCols, setSquadGridCols] = useState<number>(2);
+
+  useEffect(() => {
+    if (typeof window === "undefined") return;
+    const apply = () => setSquadGridCols(getSquadGridCols());
+    apply();
+    window.addEventListener("resize", apply);
+    return () => window.removeEventListener("resize", apply);
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, []);
 
   const initUrl = getPublicStorageUrl("art", "UI_UX/Init.png");
   const goldFrameUrl = getPublicStorageUrl("art", "UI_UX/GoldFrame.png");
@@ -133,73 +159,82 @@ export default function RaceDetailClient({
 
   const content = useMemo(() => {
     // ====== РАСОВЫЕ НАВЫКИ ======
-if (section === "skills") {
-  return (
-    <SkillsSection raceSkills={raceSkills} skillIndex={skillIndex} setSkillIndex={setSkillIndex} />
-  );
-}
+    if (section === "skills") {
+      return (
+        <SkillsSection
+          raceSkills={raceSkills}
+          skillIndex={skillIndex}
+          setSkillIndex={setSkillIndex}
+        />
+      );
+    }
 
-// ====== РАСОВЫЕ КЛАССЫ ======
-if (section === "r_classes") {
-  return <RaceClassesSection classes={raceClasses} activeId={activeClassId} />;
-}
+    // ====== РАСОВЫЕ КЛАССЫ ======
+    if (section === "r_classes") {
+      return <RaceClassesSection classes={raceClasses} activeId={activeClassId} />;
+    }
 
-
-    // ====== О РАСЕ ======
+    // ====== КАРТА ======
     if (section === "map") {
-  return <MapSection detail={detail} />;
-}
+      return <MapSection detail={detail} />;
+    }
 
+    // ====== РОДА ЛУННЫХ ЭЛЬФОВ ======
+    if (section === "moon-clans") {
+      return (
+        <MoonElfFamiliesSection
+          families={moonFamilies}
+          activeId={activeMoonFamilyId}
+          setActiveId={setActiveMoonFamilyId}
+          tab={moonFamilyTab}
+          setTab={setMoonFamilyTab}
+        />
+      );
+    }
 
-if (section === "moon-clans") {
-  return (
-    <MoonElfFamiliesSection
-      families={moonFamilies}
-      activeId={activeMoonFamilyId}
-      setActiveId={setActiveMoonFamilyId}
-      tab={moonFamilyTab}
-      setTab={setMoonFamilyTab}
-    />
-  );
-}
+    // ====== ЛЕГЕНДАРНЫЕ ОТРЯДЫ ======
+    if (section === "legendary-squads") {
+      return (
+        <LegendarySquadsSection
+          squads={moonSquads}
+          activeId={activeMoonSquadId}
+          setActiveId={setActiveMoonSquadId}
+          gridCols={squadGridCols}
+        />
+      );
+    }
 
-if (section === "houses") {
-  return (
-    <GreatHousesSection
-      detail={detail}
-      greatHouses={greatHouses}
-      activeHouseId={activeHouseId}
-      setActiveHouseId={setActiveHouseId}
-      houseTab={houseTab}
-      setHouseTab={setHouseTab}
-      hoveredHouseId={hoveredHouseId}
-      setHoveredHouseId={setHoveredHouseId}
-      houseTooltip={houseTooltip}
-      setHouseTooltip={setHouseTooltip}
-      houseGridCols={houseGridCols}
-    />
-  );
-}
+    // ====== ВЕЛИКИЕ ДОМА ======
+    if (section === "houses") {
+      return (
+        <GreatHousesSection
+          detail={detail}
+          greatHouses={greatHouses}
+          activeHouseId={activeHouseId}
+          setActiveHouseId={setActiveHouseId}
+          houseTab={houseTab}
+          setHouseTab={setHouseTab}
+          hoveredHouseId={hoveredHouseId}
+          setHoveredHouseId={setHoveredHouseId}
+          houseTooltip={houseTooltip}
+          setHouseTooltip={setHouseTooltip}
+          houseGridCols={houseGridCols}
+        />
+      );
+    }
 
+    // ====== ИСТОРИЯ ======
+    if (section === "history") {
+      if (!history || history.length === 0) {
+        return (
+          <div className="rounded-2xl border border-white/10 bg-white/[0.04] p-6 text-white/75">
+            Этот раздел пока пустой — заполним позже.
+          </div>
+        );
+      }
 
-
-
-if (section === "history") {
-  if (!history || history.length === 0) {
-    return (
-      <div className="rounded-2xl border border-white/10 bg-white/[0.04] p-6 text-white/75">
-        Этот раздел пока пустой — заполним позже.
-      </div>
-    );
-  }
-
-  return <HistorySection history={history} />;
-}
-
-// ====== РАСОВЫЕ КЛАССЫ ======
-if (section === "r_classes") {
-  return <RaceClassesSection classes={raceClasses} activeId={activeClassId} />;
-}
+      return <HistorySection history={history} />;
+    }
 
 if (section !== "about") {
       return (
@@ -211,7 +246,28 @@ if (section !== "about") {
 
     return <AboutSection detail={detail} aboutTab={aboutTab} />;
 
-  }, [section, aboutTab, skillIndex, detail, raceSkills, raceClasses, activeClassId, greatHouses, history, moonFamilyTab, activeMoonFamilyId, moonFamilies, activeHouseId, hoveredHouseId, houseTab, houseTooltip, goldFrameUrl]);
+  }, [
+    section,
+    aboutTab,
+    skillIndex,
+    detail,
+    raceSkills,
+    raceClasses,
+    activeClassId,
+    greatHouses,
+    history,
+    activeHouseId,
+    hoveredHouseId,
+    houseTab,
+    houseTooltip,
+    houseGridCols,
+    moonFamilies,
+    activeMoonFamilyId,
+    moonFamilyTab,
+    moonSquads,
+    activeMoonSquadId,
+    squadGridCols,
+  ]);
   const ink = "rgba(235, 245, 255, 0.92)";
   const inkSoft = "rgba(214, 230, 255, 0.75)";
   const line = "rgba(255,255,255,0.10)";

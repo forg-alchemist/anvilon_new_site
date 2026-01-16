@@ -8,7 +8,9 @@ export function SubHeader({ title }: { title: string }) {
   const goldSoft = "rgba(244, 214, 123, 0.25)";
 
   return (
-    <div className="pt-1">
+    // Space below the heading so it doesn't stick to the next block.
+    // Use padding instead of margin to avoid margin-collapsing edge cases.
+    <div className="pt-1 pb-4">
       <div
         style={{
           fontFamily: "var(--font-buttons)",

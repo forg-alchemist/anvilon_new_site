@@ -11,6 +11,7 @@ import { getGreatHouses } from "@/lib/data/greatHouses";
 import { getRaceHistoryBySlug } from "@/lib/data/raceHistory";
 import { getRaceClassesWithSkills } from "@/lib/data/classes";
 import { getMoonElfFamilies } from "@/lib/data/moonElfFamilies";
+import { getMoonSquadsWithPersons } from "@/lib/data/moonSquad";
 
 function parseTags(raw?: string | null): string[] {
   if (!raw) return [];
@@ -133,6 +134,9 @@ export default async function RacePage({
   // ======= Рода лунных эльфов (moon_elf_fam) =======
   const moonFamilies = slug === "moon-elf" ? await getMoonElfFamilies() : [];
 
+  // ======= Легендарные отряды (moon_elf_squad + moon_squad_pers) =======
+  const moonSquads = slug === "moon-elf" ? await getMoonSquadsWithPersons() : [];
+
 const detail: RaceDetail = {
     slug: r.slug,
     name: r.name,
@@ -176,6 +180,7 @@ const detail: RaceDetail = {
         greatHouses={greatHouses}
         history={history}
         moonFamilies={moonFamilies}
+        moonSquads={moonSquads}
       />
     </PageShell>
   );

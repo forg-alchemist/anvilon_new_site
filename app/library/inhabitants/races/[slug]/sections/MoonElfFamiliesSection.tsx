@@ -59,7 +59,7 @@ export default function MoonElfFamiliesSection(props: {
   const active = activeId ? families.find((f) => f.id === activeId) ?? null : null;
 
   const tabs: Array<{ key: MoonFamilyTabKey; label: string }> = [
-    { key: 'description', label: 'Описание расы' },
+    { key: 'description', label: 'Описание рода' },
     { key: 'bonus', label: 'Бонусы рода' },
     { key: 'story', label: 'История и особенности' },
   ];

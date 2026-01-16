@@ -37,7 +37,7 @@ const INSERTIONS: Record<string, InsertRule[]> = {
     },
     {
       after: "moon-clans",
-      section: { key: "legendary-squads", label: "ЛЕГЕНДАРНЫЕ ОТРЯДЫ", comingSoon: true },
+      section: { key: "legendary-squads", label: "ЛЕГЕНДАРНЫЕ ОТРЯДЫ", comingSoon: false },
     },
   ],
 
