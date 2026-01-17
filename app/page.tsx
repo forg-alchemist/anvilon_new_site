@@ -14,7 +14,7 @@ export default async function Home() {
       <div className="grid gap-6 md:grid-cols-2">
         <NavButton
           title="Выполнить вход"
-          subtitle="Скоро"
+          href="/enter"
           artUrl={loginArt}
         />
         <NavButton

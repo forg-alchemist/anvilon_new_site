@@ -119,3 +119,96 @@ section {
   outline: 2px solid rgba(54, 210, 255, 0.35);
   outline-offset: 2px;
 }
+
+/* ---- Back button: golden flame hover ---- */
+
+.back-flame {
+  position: relative;
+  isolation: isolate;
+}
+
+/* По умолчанию: выключено */
+.back-flame::before,
+.back-flame::after {
+  content: "";
+  position: absolute;
+  pointer-events: none;
+  opacity: 0;
+  transition: opacity 220ms ease, transform 220ms ease;
+  z-index: 1;
+}
+
+/* Пламя */
+.back-flame::before {
+  inset: -14px -18px;
+  transform: scale(0.96);
+
+  background:
+    radial-gradient(60% 70% at 30% 55%,
+      rgba(255, 214, 120, 0.55) 0%,
+      rgba(255, 168, 0, 0.28) 35%,
+      rgba(255, 168, 0, 0.00) 70%),
+    radial-gradient(60% 70% at 55% 40%,
+      rgba(255, 245, 200, 0.35) 0%,
+      rgba(255, 198, 70, 0.18) 40%,
+      rgba(255, 198, 70, 0.00) 75%);
+
+  filter: blur(10px) saturate(1.25);
+  mix-blend-mode: screen;
+}
+
+/* Волна */
+.back-flame::after {
+  left: -12px;
+  right: -12px;
+  top: 50%;
+  height: 36px;
+  transform: translateY(-50%);
+
+  background: linear-gradient(
+    90deg,
+    rgba(255, 168, 0, 0.00) 0%,
+    rgba(255, 198, 70, 0.25) 20%,
+    rgba(255, 230, 170, 0.32) 50%,
+    rgba(255, 198, 70, 0.25) 80%,
+    rgba(255, 168, 0, 0.00) 100%
+  );
+
+  filter: blur(8px);
+  mix-blend-mode: screen;
+}
+
+/* Включаем и запускаем анимацию ТОЛЬКО при наведении/фокусе */
+.back-flame:hover::before,
+.back-flame:focus-visible::before {
+  opacity: 1;
+  transform: scale(1);
+  animation: backFlameFlicker 1.2s ease-in-out infinite;
+}
+
+.back-flame:hover::after,
+.back-flame:focus-visible::after {
+  opacity: 1;
+  animation: backFlameWave 1.6s linear infinite;
+}
+
+/* Контент поверх */
+.back-flame > * {
+  position: relative;
+  z-index: 2;
+}
+
+/* В keyframes больше НЕ трогаем opacity */
+@keyframes backFlameFlicker {
+  0%   { transform: scale(0.995) translateY(0px); }
+  35%  { transform: scale(1.02) translateY(-1px); }
+  70%  { transform: scale(1.0) translateY(1px); }
+  100% { transform: scale(0.995) translateY(0px); }
+}
+
+@keyframes backFlameWave {
+  0%   { transform: translateY(-50%) translateX(-8px); }
+  50%  { transform: translateY(-50%) translateX(8px); }
+  100% { transform: translateY(-50%) translateX(-8px); }
+}
+

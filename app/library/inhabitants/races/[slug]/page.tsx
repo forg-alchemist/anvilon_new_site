@@ -171,8 +171,8 @@ const detail: RaceDetail = {
     <PageShell
       title={r.name}
       backHref="/library/inhabitants/races"
-      backLabel="Жители Анвилона"
-    >
+      backLabel="Расы"
+          >
       <RaceDetailClient
         detail={detail}
         raceSkills={raceSkills}
