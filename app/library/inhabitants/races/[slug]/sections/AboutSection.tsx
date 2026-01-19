@@ -26,6 +26,7 @@ export default function AboutSection({
           // ✅ ДВА РАЗНЫХ текстовых блока: description + features
           return (
             <div className="flex flex-col gap-8">
+              {detail.about.tags.length ? <TagsRow tags={detail.about.tags} /> : null}
               <TextBlock text={detail.about.description} />
               <div>
               <SubHeader title="Особенности" />

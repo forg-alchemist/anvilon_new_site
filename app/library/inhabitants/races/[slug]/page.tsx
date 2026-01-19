@@ -146,6 +146,9 @@ const detail: RaceDetail = {
 
     // ======= вкладки “О расе” из race_info =======
     about: {
+      // ✅ теги расы (капсулы над описанием)
+      tags: parseTags(info?.tags),
+
       description: info?.description ?? "",
       features: info?.peculiarities ?? "",
       physiology: info?.physiology ?? "",

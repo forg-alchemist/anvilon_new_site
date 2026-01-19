@@ -8,6 +8,9 @@ export type RaceDetail = {
   /** URL карты владений (public storage) */
   mapUrl?: string;
   about: {
+    /** Теги расы (капсулы над описанием) */
+    tags: string[];
+
     /** Вкладка "Описание расы" (первый текстовый блок) */
     description: string;
 
