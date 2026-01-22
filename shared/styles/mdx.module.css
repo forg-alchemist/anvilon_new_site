@@ -1,0 +1,185 @@
+/**
+ * MDX component styles.
+ * Self-contained styles - no external token dependencies.
+ */
+
+/* ========== Headings ========== */
+
+.h1 {
+  font-family: var(--font-heading), serif;
+  font-size: clamp(32px, 5vw, 48px);
+  font-weight: 400;
+  color: rgba(235, 245, 255, 0.92);
+  text-transform: uppercase;
+  letter-spacing: 0.08em;
+  text-shadow:
+    0 0 40px rgba(244, 214, 123, 0.25),
+    0 4px 20px rgba(0, 0, 0, 0.8);
+  margin-bottom: 32px;
+  margin-top: 0;
+}
+
+.h2Wrapper {
+  padding-top: 8px;
+  padding-bottom: 16px;
+  margin-top: 32px;
+}
+
+.h2 {
+  font-family: var(--font-heading), serif;
+  font-size: 14px;
+  font-weight: 400;
+  text-transform: uppercase;
+  letter-spacing: 0.22em;
+  color: rgba(244, 214, 123, 0.85);
+  text-shadow: 0 0 14px rgba(244, 214, 123, 0.25), 0 2px 16px rgba(0, 0, 0, 0.85);
+  margin: 0;
+}
+
+.h2Line {
+  margin-top: 8px;
+  height: 2px;
+  width: 220px;
+  background: linear-gradient(90deg, rgba(244, 214, 123, 0.85), transparent);
+  opacity: 0.85;
+  border-radius: 999px;
+}
+
+.h3 {
+  font-family: var(--font-heading), serif;
+  font-size: 13px;
+  font-weight: 400;
+  text-transform: uppercase;
+  letter-spacing: 0.18em;
+  color: rgba(214, 230, 255, 0.75);
+  text-shadow: 0 2px 12px rgba(0, 0, 0, 0.7);
+  margin-top: 24px;
+  margin-bottom: 12px;
+}
+
+/* ========== Text ========== */
+
+.p {
+  font-family: var(--font-body), serif;
+  font-size: 18px;
+  line-height: 1.65;
+  color: rgba(235, 245, 255, 0.92);
+  margin-top: 0;
+  margin-bottom: 16px;
+}
+
+.strong {
+  font-weight: 600;
+  color: rgba(244, 214, 123, 0.85);
+}
+
+.em {
+  font-style: italic;
+  color: rgba(214, 230, 255, 0.75);
+}
+
+/* ========== Blockquote ========== */
+
+.blockquote {
+  margin: 24px 0;
+  padding: 20px 24px;
+  border-radius: 16px;
+  border: 1px solid rgba(255, 255, 255, 0.10);
+  background: rgba(0, 0, 0, 0.25);
+  backdrop-filter: blur(10px);
+  box-shadow: 0 18px 50px rgba(0, 0, 0, 0.45);
+  border-left: 3px solid rgba(244, 214, 123, 0.85);
+  font-family: var(--font-body), serif;
+  font-size: 18px;
+  line-height: 1.65;
+  color: rgba(214, 230, 255, 0.75);
+  font-style: italic;
+}
+
+/* ========== Lists ========== */
+
+.ul {
+  font-family: var(--font-body), serif;
+  font-size: 18px;
+  line-height: 1.65;
+  color: rgba(235, 245, 255, 0.92);
+  padding-left: 24px;
+  margin-top: 0;
+  margin-bottom: 16px;
+  list-style-type: none;
+}
+
+.ol {
+  font-family: var(--font-body), serif;
+  font-size: 18px;
+  line-height: 1.65;
+  color: rgba(235, 245, 255, 0.92);
+  padding-left: 24px;
+  margin-top: 0;
+  margin-bottom: 16px;
+}
+
+.li {
+  margin-bottom: 8px;
+  padding-left: 8px;
+  position: relative;
+}
+
+.liBullet {
+  position: absolute;
+  left: -16px;
+  top: 0.5em;
+  width: 6px;
+  height: 6px;
+  border-radius: 50%;
+  background: rgba(244, 214, 123, 0.85);
+  box-shadow: 0 0 8px rgba(244, 214, 123, 0.25);
+}
+
+/* ========== Divider ========== */
+
+.hr {
+  border: none;
+  height: 1px;
+  margin: 32px 0;
+  background: linear-gradient(90deg, transparent, rgba(255, 255, 255, 0.10), transparent);
+}
+
+/* ========== Link ========== */
+
+.a {
+  color: rgba(244, 214, 123, 0.85);
+  text-decoration: none;
+  border-bottom: 1px solid rgba(244, 214, 123, 0.25);
+  transition: border-color 0.2s;
+}
+
+.a:hover {
+  border-color: rgba(244, 214, 123, 0.85);
+}
+
+/* ========== Code ========== */
+
+.code {
+  font-family: monospace;
+  font-size: 0.9em;
+  padding: 2px 6px;
+  border-radius: 4px;
+  background: rgba(0, 0, 0, 0.35);
+  border: 1px solid rgba(255, 255, 255, 0.10);
+  color: rgba(214, 230, 255, 0.75);
+}
+
+.pre {
+  font-family: monospace;
+  font-size: 14px;
+  line-height: 1.5;
+  padding: 20px;
+  margin: 24px 0;
+  border-radius: 16px;
+  border: 1px solid rgba(255, 255, 255, 0.10);
+  background: rgba(0, 0, 0, 0.35);
+  backdrop-filter: blur(10px);
+  overflow: auto;
+  color: rgba(214, 230, 255, 0.75);
+}
