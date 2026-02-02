@@ -248,8 +248,11 @@ export function MagicSchoolSlider({
   const artCardWidth = 300;
   const artCardHeight = Math.round((artCardWidth * 16) / 9); // 9:16
 
-  const leftColWidth = mode === 'paths' ? 392 : 320;
-  // Path art overlay shift (keep subtle; user asked to reduce it)
+  // Keep the grid columns stable between modes.
+  // When a path overlay card shifts to the right, we mirror that shift on the right column
+  // so the visual gap between the art and the content stays identical.
+  const leftColWidth = 320;
+  // Path art overlay shift (keep subtle)
   const overlayShift = 36;
 
   return (
@@ -264,7 +267,7 @@ export function MagicSchoolSlider({
       />
 
       {/* Two-column layout. No gutter between columns; the art column uses its own right padding. */}
-      <div className="grid items-start gap-0" style={{ gridTemplateColumns: `${leftColWidth}px 1fr` }}>
+      <div className="grid items-stretch gap-0" style={{ gridTemplateColumns: `${leftColWidth}px 1fr` }}>
         {/* ART 9:16 */}
         <div className="relative pr-6" style={{ width: leftColWidth }}>
           {/* base school card */}
@@ -382,7 +385,10 @@ export function MagicSchoolSlider({
         </div>
 
         {/* RIGHT */}
-        <div className="relative flex flex-col gap-2" style={{ height: artCardHeight }}>
+        <div
+          className="relative flex h-full flex-col gap-2"
+          style={{ minHeight: artCardHeight, marginLeft: mode === 'paths' ? overlayShift : 0 }}
+        >
           {/* Controls row (arrows + buttons). Kept in normal flow so it never overlaps the panel. */}
           <div className="flex items-center justify-between">
             <div className="flex items-center gap-2">
