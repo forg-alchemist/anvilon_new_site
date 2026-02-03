@@ -28,6 +28,8 @@ type EffectBlockInput = {
   attackDistanceValue: string;
   attackType: string;
   attackDirection: string;
+  coveringAttack: boolean;
+  coveringAttackHigh: string;
 
   impactType: string;
   impactDuration: string;
@@ -87,8 +89,10 @@ type MigrationEffectRow = {
   type_target: string;
   attack_focus: string;
   attack_distance: number;
-  attack_type: string;
+  attack_type: string | null;
   direction_attack: string | null;
+  covering_attack: boolean;
+  covering_attack_high: number | null;
 
   impact: string;
   impact_value: number | null;
@@ -251,8 +255,10 @@ export function buildMigrationPayload(state: SpellBuilderStateForMigration): Mig
       type_target: labelById(state.catalogLabelById, e.targetType),
       attack_focus: labelById(state.catalogLabelById, e.targetKind),
       attack_distance: attackDistance,
-      attack_type: labelById(state.catalogLabelById, e.attackType),
+      attack_type: labelByIdOrNull(state.catalogLabelById, e.attackType),
       direction_attack: labelByIdOrNull(state.catalogLabelById, e.attackDirection),
+      covering_attack: !!e.coveringAttack,
+      covering_attack_high: e.coveringAttack ? toIntOrZero(e.coveringAttackHigh) : null,
 
       impact: labelById(state.catalogLabelById, e.impactType),
       impact_value: toNumericOrNull(e.impactValue),
@@ -275,7 +281,6 @@ export function buildMigrationPayload(state: SpellBuilderStateForMigration): Mig
     if (!e.attackDistanceKind) errors.push(`[skill_spell_attack] Эффект ${idx + 1}: не заполнено "Дистанция атаки"`);
     if (!e.targetType) errors.push(`[skill_spell_attack] Эффект ${idx + 1}: не заполнено "Тип цели"`);
     if (!e.targetKind) errors.push(`[skill_spell_attack] Эффект ${idx + 1}: не заполнено "Вид цели"`);
-    if (!e.attackType) errors.push(`[skill_spell_attack] Эффект ${idx + 1}: не заполнено "Тип атаки"`);
     if (!e.impactType) errors.push(`[skill_spell_attack] Эффект ${idx + 1}: не заполнено "Тип воздействия"`);
 
     effectRows.push(row);

@@ -5,6 +5,7 @@ import React, { useEffect, useMemo, useState } from "react";
 import { getCatalogBooks } from "@/lib/data/catalogs";
 import { getMagicSchools } from "@/lib/data/magicSchool";
 import { getMagicPaths, type MagicPath } from "@/lib/data/magicPath";
+import { runSpellMigrationReport, type SpellBuilderStateForMigration } from "@/lib/migration/spellMigrationReport";
 import { getTalents, type TalentRow } from "@/lib/data/talents";
 
 type SelectOption = { value: string; label: string };
@@ -106,16 +107,19 @@ function NumberField({
   onChange,
   placeholder,
   allowEmpty = false,
+  disabled = false,
 }: {
   value: number | "";
   onChange: (v: number | "") => void;
   placeholder?: string;
   allowEmpty?: boolean;
+  disabled?: boolean;
 }) {
   return (
     <input
       type="number"
       value={value}
+      disabled={disabled}
       onChange={(e) => {
         const raw = e.target.value;
         if (raw === "") {
@@ -126,7 +130,7 @@ function NumberField({
         onChange(Number.isFinite(next) ? next : 0);
       }}
       placeholder={placeholder}
-      className="h-10 w-full rounded-xl border border-white/10 bg-white/[0.04] px-3 text-sm text-white/80 outline-none transition placeholder:text-white/30 focus:border-white/20"
+      className="h-10 w-full rounded-xl border border-white/10 bg-white/[0.04] px-3 text-sm text-white/80 outline-none transition placeholder:text-white/30 focus:border-white/20 disabled:cursor-not-allowed disabled:opacity-50"
     />
   );
 }
@@ -163,8 +167,10 @@ type EffectBlock = {
   targetType: string; // type_target (required)
   targetKind: string; // attack_focus (required)
   distance: number; // number (required)
-  attackType: string; // attack_type (required)
+  attackType: string; // attack_type (optional)
   attackDirection: string; // direction_attack (optional)
+  coveringAttack: boolean; // covering_attack (bool)
+  coveringAttackHigh: number; // covering_attack_high (int4)
 
   // Row 2
   impactType: string; // impact (required)
@@ -213,6 +219,8 @@ function createEffectBlock(): EffectBlock {
     distance: 0,
     attackType: "",
     attackDirection: "",
+    coveringAttack: false,
+    coveringAttackHigh: 0,
 
     impactType: "",
     impactDuration: 0,
@@ -496,7 +504,6 @@ export function SpellBuilderForm() {
       { key: "attackDistanceKind", group: "attack_category" },
       { key: "targetType", group: "type_target" },
       { key: "targetKind", group: "attack_focus" },
-      { key: "attackType", group: "attack_type" },
       { key: "impactType", group: "impact" },
     ];
 
@@ -509,6 +516,9 @@ export function SpellBuilderForm() {
             const def = first(rg.group);
             if (def) patch[rg.key] = def as any;
           }
+        }
+        if (!e.coveringAttack && e.coveringAttackHigh !== 0) {
+          patch.coveringAttackHigh = 0;
         }
 
         // Normalize conditions: must be 1+ rows, default to "Нет условий".
@@ -649,6 +659,63 @@ export function SpellBuilderForm() {
 
   // Submit confirmation modal
   const [isConfirmOpen, setIsConfirmOpen] = useState(false);
+  const [isSubmittingReport, setIsSubmittingReport] = useState(false);
+
+  const buildMigrationState = (): SpellBuilderStateForMigration => ({
+    spellName,
+    spellDescription,
+    spellLevel,
+    selectedPathId,
+    talentExceptionId,
+    spellResources: (spellResources ?? []).map((r) => ({
+      id: r.id,
+      resourceTypeId: r.resourceTypeId,
+      resourceCostId: r.resourceCostId,
+      resourceCostCustom: r.resourceCostCustom,
+    })),
+    effects: (effects ?? []).map((e) => ({
+      id: e.id,
+      isCritical: !!e.isCrit,
+      attackDistanceKind: e.attackDistanceKind,
+      targetType: e.targetType,
+      targetKind: e.targetKind,
+      attackDistanceValue: String(e.distance ?? ""),
+      attackType: e.attackType,
+      attackDirection: e.attackDirection,
+      coveringAttack: !!e.coveringAttack,
+      coveringAttackHigh: e.coveringAttack ? String(e.coveringAttackHigh ?? 0) : "0",
+      impactType: e.impactType,
+      impactDuration: String(e.impactDuration ?? ""),
+      impactValue: e.impactValue,
+      potencyResist: e.resistanceEffectiveness,
+      effectType: e.effect,
+      effectDuration: String(e.effectDuration ?? ""),
+      effectValue: e.effectValue,
+      depTalent: e.dependentTalent,
+      moveType: e.movementType,
+      moveValue: e.movementValue === "" ? "" : String(e.movementValue),
+      concentration: e.maintainability,
+      replaceImpactOrEffect: e.replacementEffectId,
+      conditions: (e.conditions ?? []).map((c) => ({
+        conditionId: c.conditionId,
+        description: c.description ?? "",
+      })),
+    })),
+    catalogLabelById,
+  });
+
+  const submitToMigrationBuilder = async (resetAfterSubmit: boolean) => {
+    if (isSubmittingReport) return;
+
+    setIsSubmittingReport(true);
+    try {
+      await runSpellMigrationReport(buildMigrationState());
+      setIsConfirmOpen(false);
+      if (resetAfterSubmit) resetToDefaults();
+    } finally {
+      setIsSubmittingReport(false);
+    }
+  };
 
   const resetToDefaults = () => {
     // Text fields
@@ -691,7 +758,6 @@ export function SpellBuilderForm() {
       attackDistanceKind: first("attack_category"),
       targetType: first("type_target"),
       targetKind: first("attack_focus"),
-      attackType: first("attack_type"),
       impactType: first("impact"),
       conditions: [{ id: uid(), conditionId: noConditionsId, description: "" }],
     };
@@ -942,7 +1008,7 @@ export function SpellBuilderForm() {
                   <div className="flex flex-col gap-2">
                     <CellLabel>Тип атаки</CellLabel>
                     <SelectField
-                      options={getCatalogGroupOptions("attack_type", true)}
+                      options={getCatalogGroupOptions("attack_type", false)}
                       value={e.attackType}
                       onChange={(v) => updateEffect(idx, { attackType: v })}
                     />
@@ -954,6 +1020,33 @@ export function SpellBuilderForm() {
                       options={getCatalogGroupOptions("direction_attack", false)}
                       value={e.attackDirection}
                       onChange={(v) => updateEffect(idx, { attackDirection: v })}
+                    />
+                  </div>
+
+                  <div className="flex flex-col gap-2">
+                    <CellLabel>Покрывающая атака</CellLabel>
+                    <div className="flex h-10 items-center justify-center rounded-xl border border-white/10 bg-white/[0.04]">
+                      <input
+                        type="checkbox"
+                        checked={e.coveringAttack}
+                        onChange={(ev) =>
+                          updateEffect(idx, {
+                            coveringAttack: ev.target.checked,
+                            coveringAttackHigh: ev.target.checked ? e.coveringAttackHigh : 0,
+                          })
+                        }
+                        className="h-4 w-4"
+                      />
+                    </div>
+                  </div>
+
+                  <div className="flex flex-col gap-2">
+                    <CellLabel>Высота покрывающей атаки</CellLabel>
+                    <NumberField
+                      value={e.coveringAttackHigh}
+                      onChange={(v) => updateEffect(idx, { coveringAttackHigh: e.coveringAttack ? (v === "" ? 0 : v) : 0 })}
+                      disabled={!e.coveringAttack}
+                      placeholder="число"
                     />
                   </div>
 
@@ -1162,17 +1255,6 @@ export function SpellBuilderForm() {
         </button>
       </div>
 
-      {/* Submit block (full width) */}
-      <div className="w-full rounded-2xl border border-white/10 bg-black/40 p-5 backdrop-blur">
-        <button
-          type="button"
-          onClick={() => setIsConfirmOpen(true)}
-          className="h-12 w-full rounded-2xl border border-[#e7c47a]/40 bg-[#e7c47a]/15 text-sm font-semibold tracking-wide text-[#f6e6b6] shadow-[0_0_0_1px_rgba(231,196,122,0.12),0_10px_30px_-12px_rgba(231,196,122,0.55)] transition hover:bg-[#e7c47a]/20 hover:shadow-[0_0_0_1px_rgba(231,196,122,0.18),0_14px_40px_-14px_rgba(231,196,122,0.6)]"
-        >
-          Отправить
-        </button>
-      </div>
-
       {/* Confirmation modal */}
       {isConfirmOpen ? (
         <div className="fixed inset-0 z-[1000] flex items-center justify-center bg-black/60 p-4 backdrop-blur-sm">
@@ -1184,17 +1266,16 @@ export function SpellBuilderForm() {
             <div className="space-y-2 px-5 py-4">
               <button
                 type="button"
-                onClick={() => setIsConfirmOpen(false)}
+                onClick={() => void submitToMigrationBuilder(false)}
+                disabled={isSubmittingReport}
                 className="h-11 w-full rounded-xl border border-emerald-400/30 bg-emerald-400/15 text-sm font-semibold text-emerald-100 transition hover:bg-emerald-400/25 hover:border-emerald-400/50"
               >
                 Да, отправить
               </button>
               <button
                 type="button"
-                onClick={() => {
-                  setIsConfirmOpen(false);
-                  resetToDefaults();
-                }}
+                onClick={() => void submitToMigrationBuilder(true)}
+                disabled={isSubmittingReport}
                 className="h-11 w-full rounded-xl border border-[#e7c47a]/35 bg-[#e7c47a]/15 text-sm font-semibold text-[#f6e6b6] transition hover:bg-[#e7c47a]/20"
               >
                 Да, отправить и обнулить

@@ -1,6 +1,6 @@
 'use client';
 
-import React, { useMemo, useState } from 'react';
+import React, { useEffect, useMemo, useState } from 'react';
 import { getPublicStorageUrl } from '@/lib/supabase/publicUrl';
 import { getMagicTheme } from './magicTheme';
 import type { MagicPath } from '@/lib/data/magicPath';
@@ -17,6 +17,18 @@ export type MagicSchool = {
 
 function upper(v?: string | null): string {
   return (v ?? '').toString().trim().toUpperCase();
+}
+
+const ART_CARD_WIDTH = 300;
+const ART_CARD_HEIGHT = Math.round((ART_CARD_WIDTH * 16) / 9); // 9:16
+
+function toOptimizedArtUrl(url: string, width: number): string {
+  if (!url) return '';
+
+  // Keep original object URL to preserve exact framing inside the card.
+  // (Render endpoint changed perceived scale for some source arts.)
+  void width;
+  return url;
 }
 
 function ArrowButton({
@@ -192,8 +204,10 @@ export function MagicSchoolSlider({
 
   const theme = getMagicTheme(curSchool?.id);
 
-  const schoolArtUrl =
-    curSchool?.art_path && curSchool?.bucket ? getPublicStorageUrl(curSchool.bucket, curSchool.art_path) : '';
+  const schoolArtUrl = useMemo(() => {
+    const baseUrl = curSchool?.art_path && curSchool?.bucket ? getPublicStorageUrl(curSchool.bucket, curSchool.art_path) : '';
+    return toOptimizedArtUrl(baseUrl, ART_CARD_WIDTH * 2);
+  }, [curSchool?.art_path, curSchool?.bucket]);
 
   const curSchoolPaths = useMemo(() => {
     if (!curSchool?.id) return [] as MagicPath[];
@@ -203,7 +217,56 @@ export function MagicSchoolSlider({
   const safePathIndex = curSchoolPaths.length ? ((pathIdx % curSchoolPaths.length) + curSchoolPaths.length) % curSchoolPaths.length : 0;
   const curPath = curSchoolPaths.length ? curSchoolPaths[safePathIndex] : null;
 
-  const pathArtUrl = curPath?.art_path && curPath?.bucket ? getPublicStorageUrl(curPath.bucket, curPath.art_path) : '';
+  const pathArtUrl = useMemo(() => {
+    const baseUrl = curPath?.art_path && curPath?.bucket ? getPublicStorageUrl(curPath.bucket, curPath.art_path) : '';
+    return toOptimizedArtUrl(baseUrl, ART_CARD_WIDTH * 2);
+  }, [curPath?.art_path, curPath?.bucket]);
+
+  useEffect(() => {
+    const preload = (url: string) => {
+      if (!url) return;
+      const img = new Image();
+      img.decoding = 'async';
+      img.src = url;
+    };
+
+    preload(schoolArtUrl);
+    preload(pathArtUrl);
+
+    if (schoolItems.length > 1) {
+      const prevSchool = schoolItems[(safeSchoolIndex - 1 + schoolItems.length) % schoolItems.length];
+      const nextSchool = schoolItems[(safeSchoolIndex + 1) % schoolItems.length];
+
+      const prevUrl =
+        prevSchool?.art_path && prevSchool?.bucket
+          ? toOptimizedArtUrl(getPublicStorageUrl(prevSchool.bucket, prevSchool.art_path), ART_CARD_WIDTH * 2)
+          : '';
+      const nextUrl =
+        nextSchool?.art_path && nextSchool?.bucket
+          ? toOptimizedArtUrl(getPublicStorageUrl(nextSchool.bucket, nextSchool.art_path), ART_CARD_WIDTH * 2)
+          : '';
+
+      preload(prevUrl);
+      preload(nextUrl);
+    }
+
+    if (curSchoolPaths.length > 1) {
+      const prevPath = curSchoolPaths[(safePathIndex - 1 + curSchoolPaths.length) % curSchoolPaths.length];
+      const nextPath = curSchoolPaths[(safePathIndex + 1) % curSchoolPaths.length];
+
+      const prevUrl =
+        prevPath?.art_path && prevPath?.bucket
+          ? toOptimizedArtUrl(getPublicStorageUrl(prevPath.bucket, prevPath.art_path), ART_CARD_WIDTH * 2)
+          : '';
+      const nextUrl =
+        nextPath?.art_path && nextPath?.bucket
+          ? toOptimizedArtUrl(getPublicStorageUrl(nextPath.bucket, nextPath.art_path), ART_CARD_WIDTH * 2)
+          : '';
+
+      preload(prevUrl);
+      preload(nextUrl);
+    }
+  }, [schoolArtUrl, pathArtUrl, schoolItems, safeSchoolIndex, curSchoolPaths, safePathIndex]);
 
   const title = mode === 'paths' ? upper(curPath?.name) || '—' : upper(curSchool?.name) || '—';
   const mainText =
@@ -243,11 +306,6 @@ export function MagicSchoolSlider({
     backdropFilter: 'blur(10px)',
   };
 
-  // Layout constants (explicit so the slider stays consistent)
-  // Slightly smaller than the column width so the left side breathes.
-  const artCardWidth = 300;
-  const artCardHeight = Math.round((artCardWidth * 16) / 9); // 9:16
-
   // Keep the grid columns stable between modes.
   // When a path overlay card shifts to the right, we mirror that shift on the right column
   // so the visual gap between the art and the content stays identical.
@@ -275,7 +333,7 @@ export function MagicSchoolSlider({
             className="overflow-hidden rounded-t-2xl"
             style={{
               ...glassPanel,
-              width: artCardWidth,
+              width: ART_CARD_WIDTH,
               boxShadow: `0 22px 58px rgba(0,0,0,0.52), 0 0 46px ${theme.glowSoft}, 0 0 14px ${theme.glow}, inset 0 0 0 1px rgba(255,255,255,0.06)`,
             }}
           >
@@ -294,6 +352,9 @@ export function MagicSchoolSlider({
                   alt={curSchool?.name ?? 'Magic school'}
                   className="absolute inset-0 h-full w-full object-cover"
                   draggable={false}
+                  loading="eager"
+                  decoding="async"
+                  fetchPriority={mode === 'school' ? 'high' : 'auto'}
                   onError={() => setSchoolArtFailed(true)}
                   style={
                     mode === 'paths'
@@ -330,7 +391,7 @@ export function MagicSchoolSlider({
           {mode === 'paths' ? (
             <div
               className="absolute top-0"
-              style={{ left: overlayShift, width: artCardWidth }}
+              style={{ left: overlayShift, width: ART_CARD_WIDTH }}
             >
               <div
                 className="overflow-hidden rounded-b-2xl"
@@ -354,6 +415,9 @@ export function MagicSchoolSlider({
                       alt={curPath?.name ?? 'Magic path'}
                       className="absolute inset-0 h-full w-full object-cover"
                       draggable={false}
+                      loading="eager"
+                      decoding="async"
+                      fetchPriority="high"
                       onError={() => setPathArtFailed(true)}
                     />
                   ) : (
@@ -387,7 +451,7 @@ export function MagicSchoolSlider({
         {/* RIGHT */}
         <div
           className="relative flex h-full flex-col gap-2"
-          style={{ minHeight: artCardHeight, marginLeft: mode === 'paths' ? overlayShift : 0 }}
+          style={{ minHeight: ART_CARD_HEIGHT, marginLeft: mode === 'paths' ? overlayShift : 0 }}
         >
           {/* Controls row (arrows + buttons). Kept in normal flow so it never overlaps the panel. */}
           <div className="flex items-center justify-between">
