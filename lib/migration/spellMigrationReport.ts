@@ -166,7 +166,7 @@ function uuid(): Uuid {
   });
 }
 
-function toIntOrZero(v: string): number {
+function toIntOrZero(v: string | number): number {
   const n = Number(String(v ?? "").trim());
   if (!Number.isFinite(n)) return 0;
   return Math.trunc(n);
