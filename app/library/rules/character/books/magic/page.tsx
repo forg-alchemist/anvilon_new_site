@@ -2,11 +2,21 @@
 import { PageShell } from "@/components/PageShell";
 import { getMagicSchools } from "@/lib/data/magicSchool";
 import { getMagicPaths } from "@/lib/data/magicPath";
+import { getCatalogBooks } from "@/lib/data/catalogs";
+import { getTalents } from "@/lib/data/talents";
+import { getMagicSpells, getSpellConditions, getSpellEffects, getSpellResources } from "@/lib/data/magicSpells";
 import { MagicSchoolSlider } from "./MagicSchoolSlider";
 
 export default async function Page() {
   const schools = await getMagicSchools();
   const paths = await getMagicPaths();
+  const catalogBooks = await getCatalogBooks();
+  const spells = await getMagicSpells();
+  const talents = await getTalents();
+  const spellResources = await getSpellResources();
+  const spellConditions = await getSpellConditions();
+  const spellEffects = await getSpellEffects();
+
 
   return (
     <PageShell
@@ -38,7 +48,16 @@ export default async function Page() {
           </p>
         </div>
 
-        <MagicSchoolSlider schools={schools} paths={paths} />
+        <MagicSchoolSlider
+          schools={schools}
+          paths={paths}
+          spells={spells}
+          talents={talents}
+          spellResources={spellResources}
+          spellEffects={spellEffects}
+          spellConditions={spellConditions}
+          catalogBooks={catalogBooks ?? []}
+        />
       </div>
     </PageShell>
   );

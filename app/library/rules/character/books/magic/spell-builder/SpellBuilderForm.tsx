@@ -1,11 +1,11 @@
-"use client";
+﻿﻿"use client";
 
 import React, { useEffect, useMemo, useState } from "react";
 
 import { getCatalogBooks } from "@/lib/data/catalogs";
 import { getMagicSchools } from "@/lib/data/magicSchool";
 import { getMagicPaths, type MagicPath } from "@/lib/data/magicPath";
-import { runSpellMigrationReport, type SpellBuilderStateForMigration } from "@/lib/migration/spellMigrationReport";
+import { runSpellMigrationToDb, type SpellBuilderStateForMigration } from "@/lib/migration/spellMigrationReport";
 import { getTalents, type TalentRow } from "@/lib/data/talents";
 
 type SelectOption = { value: string; label: string };
@@ -102,6 +102,28 @@ function TextField({
   );
 }
 
+function TextAreaField({
+  value,
+  onChange,
+  placeholder,
+  rows = 4,
+}: {
+  value: string;
+  onChange: (v: string) => void;
+  placeholder?: string;
+  rows?: number;
+}) {
+  return (
+    <textarea
+      value={value}
+      onChange={(e) => onChange(e.target.value)}
+      placeholder={placeholder}
+      rows={rows}
+      className="h-24 max-h-24 min-h-24 w-full resize-none overflow-y-auto rounded-xl border border-white/10 bg-white/[0.04] px-3 py-2 text-sm text-white/80 outline-none transition placeholder:text-white/30 focus:border-white/20"
+    />
+  );
+}
+
 function NumberField({
   value,
   onChange,
@@ -167,6 +189,8 @@ type EffectBlock = {
   targetType: string; // type_target (required)
   targetKind: string; // attack_focus (required)
   distance: number; // number (required)
+  targetValuePrim: number; // number
+  targetValueSec: number; // number
   attackType: string; // attack_type (optional)
   attackDirection: string; // direction_attack (optional)
   coveringAttack: boolean; // covering_attack (bool)
@@ -191,6 +215,10 @@ type EffectBlock = {
 
   // Row 4 (new)
   replacementEffectId: string; // pick from existing effects (optional)
+  additionEffectId: string; // pick from existing effects (optional)
+
+  // Row 5 (description)
+  description: string; // description (optional)
 
   // Conditions (1+ rows, default "Нет условий")
   conditions: Array<{
@@ -208,6 +236,12 @@ function uid() {
   return `${Date.now()}-${Math.random().toString(16).slice(2)}`;
 }
 
+function capitalizeFirst(value: string): string {
+  const v = String(value ?? "");
+  if (!v) return v;
+  return v.charAt(0).toUpperCase() + v.slice(1);
+}
+
 function createEffectBlock(): EffectBlock {
   return {
     id: uid(),
@@ -217,6 +251,8 @@ function createEffectBlock(): EffectBlock {
     targetType: "",
     targetKind: "",
     distance: 0,
+    targetValuePrim: 0,
+    targetValueSec: 0,
     attackType: "",
     attackDirection: "",
     coveringAttack: false,
@@ -238,6 +274,8 @@ function createEffectBlock(): EffectBlock {
     resourceCost: "",
 
     replacementEffectId: "",
+    additionEffectId: "",
+    description: "",
 
     conditions: [
       {
@@ -323,9 +361,13 @@ function getAllowedCostLabelsByResourceTypeName(resourceTypeName: string): strin
 }
 
 export function SpellBuilderForm() {
+  type PublishToast = { kind: "success" | "error"; message: string } | null;
+  type ConstructorMode = "skill" | "spell" | "profession_skill";
+
   // Header fields (draft)
   const [spellName, setSpellName] = useState<string>("");
   const [spellDescription, setSpellDescription] = useState<string>("");
+  const [constructorMode, setConstructorMode] = useState<ConstructorMode>("spell");
 
   // Reference data
   // eslint-disable-next-line @typescript-eslint/no-explicit-any
@@ -337,6 +379,9 @@ export function SpellBuilderForm() {
   const [selectedSchoolId, setSelectedSchoolId] = useState<string>("");
   const [selectedPathId, setSelectedPathId] = useState<string>("");
   const [spellLevel, setSpellLevel] = useState<number>(1);
+  const [spellTargetValuePrim, setSpellTargetValuePrim] = useState<number>(0);
+  const [spellTargetValueSec, setSpellTargetValueSec] = useState<number>(0);
+  const [spellDuration, setSpellDuration] = useState<number>(0);
   const [talentExceptionId, setTalentExceptionId] = useState<string>(""); // can be empty
 
   // Spell resources (1+ rows)
@@ -432,6 +477,10 @@ export function SpellBuilderForm() {
     return [EMPTY_OPTION, ...opts];
   };
 
+  const sortOptionsAlphabetically = (options: SelectOption[]): SelectOption[] => {
+    return [...options].sort((a, b) => a.label.localeCompare(b.label, "ru", { sensitivity: "base" }));
+  };
+
   const catalogLabelById = useMemo<Record<string, string>>(() => {
     const m: Record<string, string> = {};
     for (const row of catalogBooks) {
@@ -463,6 +512,13 @@ export function SpellBuilderForm() {
   }, [conditionOptionsRequired, noConditionsId]);
 
   const resourceTypeOptions = useMemo(() => getCatalogGroupOptions("resource_type", true), [catalogOptionsByGroup]);
+  const impactOptionsSorted = useMemo(() => sortOptionsAlphabetically(getCatalogGroupOptions("impact", true)), [catalogOptionsByGroup]);
+  const effectOptionsSorted = useMemo(() => {
+    const opts = getCatalogGroupOptions("effect", false);
+    const [empty, ...rest] = opts;
+    if (empty?.value !== "") return sortOptionsAlphabetically(opts);
+    return [empty, ...sortOptionsAlphabetically(rest)];
+  }, [catalogOptionsByGroup]);
   // "Затраты ресурса" — фиксированный список по твоей таблице, не из БД.
   const resourceCostOptionsAll = useMemo(
     () => RESOURCE_COST_FALLBACK_LABELS.map((label) => ({ value: label, label })),
@@ -621,6 +677,11 @@ export function SpellBuilderForm() {
     setEffects((prev) => {
       const next = [...prev];
       const nb = createEffectBlock();
+      const first = (group: string) => (catalogOptionsByGroup[group]?.[0]?.value ?? "");
+      nb.attackDistanceKind = first("attack_category");
+      nb.targetType = first("type_target");
+      nb.targetKind = first("attack_focus");
+      nb.impactType = first("impact");
       nb.conditions = [{ id: uid(), conditionId: noConditionsId, description: "" }];
       next.splice(index + 1, 0, nb);
       return next;
@@ -639,12 +700,15 @@ export function SpellBuilderForm() {
   };
 
   const addSpellResourceRow = () => {
+    const nextTypeId = resourceTypeOptions[0]?.value ?? "";
+    const nextCostId = getResourceCostOptions(nextTypeId, false)[0]?.value ?? "";
+
     setSpellResources((prev) => [
       ...prev,
       {
         id: uid(),
-        resourceTypeId: resourceTypeOptions[0]?.value ?? "",
-        resourceCostId: "",
+        resourceTypeId: nextTypeId,
+        resourceCostId: nextCostId,
         resourceCostCustom: "",
       },
     ]);
@@ -660,11 +724,45 @@ export function SpellBuilderForm() {
   // Submit confirmation modal
   const [isConfirmOpen, setIsConfirmOpen] = useState(false);
   const [isSubmittingReport, setIsSubmittingReport] = useState(false);
+  const [publishToast, setPublishToast] = useState<PublishToast>(null);
+
+  useEffect(() => {
+    if (!publishToast) return;
+    const timer = setTimeout(() => setPublishToast(null), 3000);
+    return () => clearTimeout(timer);
+  }, [publishToast]);
+
+  const downloadPublishErrorLog = (errors: string[]) => {
+    const safeName = (spellName || "spell").replace(/[^0-9a-zA-Zа-яА-Я_-]+/g, "_");
+    const stamp = new Date().toISOString().replace(/[:.]/g, "-");
+    const filename = `spell_publish_errors__${safeName}__${stamp}.txt`;
+    const content = [
+      "SPELL PUBLISH ERROR LOG",
+      `generated_at: ${new Date().toISOString()}`,
+      "",
+      "errors:",
+      ...(errors.length ? errors.map((e) => `- ${e}`) : ["- Неизвестная ошибка публикации"]),
+      "",
+    ].join("\n");
+
+    const blob = new Blob([content], { type: "text/plain;charset=utf-8" });
+    const url = URL.createObjectURL(blob);
+    const a = document.createElement("a");
+    a.href = url;
+    a.download = filename;
+    document.body.appendChild(a);
+    a.click();
+    a.remove();
+    setTimeout(() => URL.revokeObjectURL(url), 2500);
+  };
 
   const buildMigrationState = (): SpellBuilderStateForMigration => ({
     spellName,
     spellDescription,
     spellLevel,
+    spellTargetValuePrim,
+    spellTargetValueSec,
+    spellDuration,
     selectedPathId,
     talentExceptionId,
     spellResources: (spellResources ?? []).map((r) => ({
@@ -680,6 +778,8 @@ export function SpellBuilderForm() {
       targetType: e.targetType,
       targetKind: e.targetKind,
       attackDistanceValue: String(e.distance ?? ""),
+      targetValuePrim: String(e.targetValuePrim ?? ""),
+      targetValueSec: String(e.targetValueSec ?? ""),
       attackType: e.attackType,
       attackDirection: e.attackDirection,
       coveringAttack: !!e.coveringAttack,
@@ -695,7 +795,11 @@ export function SpellBuilderForm() {
       moveType: e.movementType,
       moveValue: e.movementValue === "" ? "" : String(e.movementValue),
       concentration: e.maintainability,
+      resourceType: e.resourceType,
+      resourceCost: e.resourceCost,
       replaceImpactOrEffect: e.replacementEffectId,
+      addImpactOrEffect: e.additionEffectId,
+      description: e.description,
       conditions: (e.conditions ?? []).map((c) => ({
         conditionId: c.conditionId,
         description: c.description ?? "",
@@ -709,9 +813,16 @@ export function SpellBuilderForm() {
 
     setIsSubmittingReport(true);
     try {
-      await runSpellMigrationReport(buildMigrationState());
+      const res = await runSpellMigrationToDb(buildMigrationState());
+      if (!res.ok) {
+        setPublishToast({ kind: "error", message: "Неудача!" });
+        downloadPublishErrorLog(res.errors);
+        return;
+      }
+
       setIsConfirmOpen(false);
       if (resetAfterSubmit) resetToDefaults();
+      setPublishToast({ kind: "success", message: "Успешно!" });
     } finally {
       setIsSubmittingReport(false);
     }
@@ -724,6 +835,9 @@ export function SpellBuilderForm() {
 
     // Base selects / numbers
     setSpellLevel(1);
+    setSpellTargetValuePrim(0);
+    setSpellTargetValueSec(0);
+    setSpellDuration(0);
     setTalentExceptionId("");
 
     // School / path defaults
@@ -766,6 +880,44 @@ export function SpellBuilderForm() {
 
   return (
     <div className="space-y-6">
+      <div className="rounded-2xl border border-white/10 bg-white/[0.04] p-3">
+        <div className="grid grid-cols-1 gap-2 sm:grid-cols-3">
+          <button
+            type="button"
+            onClick={() => setConstructorMode("skill")}
+            className={`h-11 rounded-xl border text-sm font-semibold transition ${
+              constructorMode === "skill"
+                ? "border-amber-300/50 bg-amber-300/15 text-amber-100"
+                : "border-white/10 bg-white/[0.04] text-white/75 hover:bg-white/[0.06]"
+            }`}
+          >
+            Навык
+          </button>
+          <button
+            type="button"
+            onClick={() => setConstructorMode("spell")}
+            className={`h-11 rounded-xl border text-sm font-semibold transition ${
+              constructorMode === "spell"
+                ? "border-amber-300/50 bg-amber-300/15 text-amber-100"
+                : "border-white/10 bg-white/[0.04] text-white/75 hover:bg-white/[0.06]"
+            }`}
+          >
+            Заклинание
+          </button>
+          <button
+            type="button"
+            onClick={() => setConstructorMode("profession_skill")}
+            className={`h-11 rounded-xl border text-sm font-semibold transition ${
+              constructorMode === "profession_skill"
+                ? "border-amber-300/50 bg-amber-300/15 text-amber-100"
+                : "border-white/10 bg-white/[0.04] text-white/75 hover:bg-white/[0.06]"
+            }`}
+          >
+            Навык профессии
+          </button>
+        </div>
+      </div>
+
       <Card title="Параметры заклинания" subtitle="Базовые поля. Эффекты ниже — отдельными блоками.">
         <div className="overflow-hidden rounded-2xl border border-white/10">
           <div className="grid grid-cols-[160px_1fr_1fr]">
@@ -779,7 +931,7 @@ export function SpellBuilderForm() {
             </div>
 
             {/* Art column */}
-            <div className="row-span-5 border-r border-white/10 p-4">
+            <div className="row-span-6 border-r border-white/10 p-4">
               <button
                 type="button"
                 className="h-11 w-full rounded-xl border border-white/10 bg-white/[0.04] text-sm font-semibold text-white/75 transition hover:bg-white/[0.06]"
@@ -790,10 +942,10 @@ export function SpellBuilderForm() {
 
             {/* Name / Description */}
             <div className="border-b border-r border-white/10 p-4">
-              <TextField value={spellName} onChange={setSpellName} placeholder="поле ввода" />
+              <TextField value={spellName} onChange={(v) => setSpellName(capitalizeFirst(v))} placeholder="поле ввода" />
             </div>
             <div className="border-b border-white/10 p-4">
-              <TextField value={spellDescription} onChange={setSpellDescription} placeholder="поле ввода" />
+              <TextAreaField value={spellDescription} onChange={setSpellDescription} placeholder="поле ввода" rows={4} />
             </div>
 
             {/* School / Path */}
@@ -815,6 +967,24 @@ export function SpellBuilderForm() {
                   value={selectedPathId || (pathOptions[0]?.value ?? "")}
                   onChange={setSelectedPathId}
                 />
+              </div>
+            </div>
+
+            {/* Targets + Duration */}
+            <div className="col-span-2 border-b border-white/10 p-4">
+              <div className="grid grid-cols-3 gap-3">
+                <div className="flex flex-col gap-2">
+                  <CellLabel>Первичное число целей</CellLabel>
+                  <NumberField value={spellTargetValuePrim} onChange={(v) => setSpellTargetValuePrim(v === "" ? 0 : v)} />
+                </div>
+                <div className="flex flex-col gap-2">
+                  <CellLabel>Вторичное число целей</CellLabel>
+                  <NumberField value={spellTargetValueSec} onChange={(v) => setSpellTargetValueSec(v === "" ? 0 : v)} />
+                </div>
+                <div className="flex flex-col gap-2">
+                  <CellLabel>Время действия</CellLabel>
+                  <NumberField value={spellDuration} onChange={(v) => setSpellDuration(v === "" ? 0 : v)} />
+                </div>
               </div>
             </div>
 
@@ -1006,6 +1176,22 @@ export function SpellBuilderForm() {
                   </div>
 
                   <div className="flex flex-col gap-2">
+                    <CellLabel>Первичное число целей</CellLabel>
+                    <NumberField
+                      value={e.targetValuePrim}
+                      onChange={(v) => updateEffect(idx, { targetValuePrim: v === "" ? 0 : v })}
+                    />
+                  </div>
+
+                  <div className="flex flex-col gap-2">
+                    <CellLabel>Вторичное число целей</CellLabel>
+                    <NumberField
+                      value={e.targetValueSec}
+                      onChange={(v) => updateEffect(idx, { targetValueSec: v === "" ? 0 : v })}
+                    />
+                  </div>
+
+                  <div className="flex flex-col gap-2">
                     <CellLabel>Тип атаки</CellLabel>
                     <SelectField
                       options={getCatalogGroupOptions("attack_type", false)}
@@ -1054,7 +1240,7 @@ export function SpellBuilderForm() {
                   <div className="flex flex-col gap-2">
                     <CellLabel>Тип воздействия</CellLabel>
                     <SelectField
-                      options={getCatalogGroupOptions("impact", true)}
+                      options={impactOptionsSorted}
                       value={e.impactType}
                       onChange={(v) => updateEffect(idx, { impactType: v })}
                     />
@@ -1085,7 +1271,7 @@ export function SpellBuilderForm() {
                   <div className="flex flex-col gap-2">
                     <CellLabel>Эффект</CellLabel>
                     <SelectField
-                      options={getCatalogGroupOptions("effect", false)}
+                      options={effectOptionsSorted}
                       value={e.effect}
                       onChange={(v) => updateEffect(idx, { effect: v })}
                     />
@@ -1170,6 +1356,25 @@ export function SpellBuilderForm() {
                       options={replacementOptions}
                       value={e.replacementEffectId}
                       onChange={(v) => updateEffect(idx, { replacementEffectId: v })}
+                    />
+                  </div>
+
+                  <div className="flex flex-col gap-2">
+                    <CellLabel>Дополняет воздействие или эффект</CellLabel>
+                    <SelectField
+                      options={replacementOptions}
+                      value={e.additionEffectId}
+                      onChange={(v) => updateEffect(idx, { additionEffectId: v })}
+                    />
+                  </div>
+
+                  <div className="col-span-7 flex flex-col gap-2">
+                    <CellLabel>Описание</CellLabel>
+                    <TextAreaField
+                      value={e.description}
+                      onChange={(v) => updateEffect(idx, { description: v })}
+                      placeholder="поле ввода"
+                      rows={3}
                     />
                   </div>
                 </div>
@@ -1282,6 +1487,16 @@ export function SpellBuilderForm() {
               </button>
               <button
                 type="button"
+                onClick={() => {
+                  setIsConfirmOpen(false);
+                  resetToDefaults();
+                }}
+                className="h-11 w-full rounded-xl border border-amber-400/30 bg-amber-400/15 text-sm font-semibold text-amber-100 transition hover:bg-amber-400/25 hover:border-amber-400/50"
+              >
+                Обнулить
+              </button>
+              <button
+                type="button"
                 onClick={() => setIsConfirmOpen(false)}
                 className="h-11 w-full rounded-xl border border-rose-500/30 bg-rose-500/15 text-sm font-semibold text-rose-100 transition hover:bg-rose-500/25 hover:border-rose-500/50"
               >
@@ -1291,8 +1506,43 @@ export function SpellBuilderForm() {
           </div>
         </div>
       ) : null}
+
+      {publishToast ? (
+        <div
+          className={`publish-toast fixed right-5 top-5 z-[1200] rounded-xl border px-4 py-3 text-sm font-semibold shadow-xl ${
+            publishToast.kind === "success"
+              ? "border-emerald-400/45 bg-emerald-500/20 text-emerald-100"
+              : "border-rose-400/45 bg-rose-500/20 text-rose-100"
+          }`}
+        >
+          {publishToast.message}
+        </div>
+      ) : null}
+
+      <style jsx global>{`
+        @keyframes publish-toast-fade {
+          0% {
+            opacity: 0;
+          }
+          16.666% {
+            opacity: 1;
+          }
+          83.333% {
+            opacity: 1;
+          }
+          100% {
+            opacity: 0;
+          }
+        }
+
+        .publish-toast {
+          animation: publish-toast-fade 3s ease-in-out both;
+        }
+      `}</style>
     </div>
   );
 }
 
 export default SpellBuilderForm;
+
+

@@ -1,9 +1,10 @@
-// Spell migration report builder (client-side).
+﻿// Spell migration report builder (client-side).
 //
 // Collects UI state, generates deterministic IDs, resolves resource values
-// via the dictionary module, and outputs a human-readable text report.
-// No DB writes are performed here.
+// via the dictionary module, can output a human-readable text report,
+// and can submit rows into Supabase tables.
 
+import { supabase } from "@/lib/supabaseClient";
 import { normalizeSpellName, resolveResourceValue } from "./spellMigrationDict";
 
 export type Uuid = string;
@@ -26,6 +27,8 @@ type EffectBlockInput = {
   targetType: string;
   targetKind: string;
   attackDistanceValue: string;
+  targetValuePrim: string;
+  targetValueSec: string;
   attackType: string;
   attackDirection: string;
   coveringAttack: boolean;
@@ -44,8 +47,13 @@ type EffectBlockInput = {
   moveType: string;
   moveValue: string;
   concentration: string;
+  resourceType: string;
+  resourceCost: string;
 
   replaceImpactOrEffect: string;
+  addImpactOrEffect: string;
+
+  description: string;
 
   conditions: ConditionRow[];
 };
@@ -61,6 +69,9 @@ export type SpellBuilderStateForMigration = {
   spellName: string;
   spellDescription: string;
   spellLevel: number;
+  spellTargetValuePrim: number;
+  spellTargetValueSec: number;
+  spellDuration: number;
   selectedPathId: string;
   talentExceptionId: string;
 
@@ -77,6 +88,9 @@ type MigrationSpellsRow = {
   lvl: number;
   id_path: Uuid;
   exc_talent: Uuid | null;
+  target_value_prim: number;
+  target_value_sec: number;
+  duration: number;
 };
 
 type MigrationEffectRow = {
@@ -89,6 +103,8 @@ type MigrationEffectRow = {
   type_target: string;
   attack_focus: string;
   attack_distance: number;
+  target_value_prim: number;
+  target_value_sec: number;
   attack_type: string | null;
   direction_attack: string | null;
   covering_attack: boolean;
@@ -109,6 +125,8 @@ type MigrationEffectRow = {
 
   dep_talent: Uuid | null;
   replace_imp_eff: Uuid | null;
+  add_imp_eff: Uuid | null;
+  description: string | null;
 };
 
 type MigrationConditionRow = {
@@ -116,6 +134,7 @@ type MigrationConditionRow = {
   id_eff: Uuid;
   condition: string; // catalogs_book.name
   description: string | null;
+  type: "spell" | "spell_impact";
 };
 
 type MigrationResourceRow = {
@@ -123,6 +142,7 @@ type MigrationResourceRow = {
   id_spell_skill: Uuid;
   resource_type: string; // catalogs_book.name
   resource_value: number;
+  type: "spell" | "spell_impact";
 };
 
 export type MigrationPayload = {
@@ -195,6 +215,9 @@ export function buildMigrationPayload(state: SpellBuilderStateForMigration): Mig
     lvl: state.spellLevel,
     id_path: state.selectedPathId as Uuid,
     exc_talent: state.talentExceptionId ? (state.talentExceptionId as Uuid) : null,
+    target_value_prim: toIntOrZero(state.spellTargetValuePrim),
+    target_value_sec: toIntOrZero(state.spellTargetValueSec),
+    duration: toIntOrZero(state.spellDuration),
   };
 
   if (!spellsRow.name) errors.push("[spells] Не заполнено: Название заклинания");
@@ -226,6 +249,7 @@ export function buildMigrationPayload(state: SpellBuilderStateForMigration): Mig
       id_spell_skill: spellId,
       resource_type: typeName,
       resource_value: res.value,
+      type: "spell",
     });
   }
 
@@ -241,9 +265,25 @@ export function buildMigrationPayload(state: SpellBuilderStateForMigration): Mig
     const effId = uuid();
 
     const attackDistance = toIntOrZero(e.attackDistanceValue);
+    const targetValuePrim = toIntOrZero(e.targetValuePrim);
+    const targetValueSec = toIntOrZero(e.targetValueSec);
     const impactDuration = toIntOrZero(e.impactDuration);
     const effectDuration = toIntOrZero(e.effectDuration);
     const moveValue = toIntOrZero(e.moveValue);
+    const effectResourceType = labelByIdOrNull(state.catalogLabelById, e.resourceType);
+    let effectResourceValue: number | null = null;
+    if (effectResourceType && String(e.resourceCost ?? "").trim()) {
+      const effectRes = resolveResourceValue({
+        resourceTypeName: effectResourceType,
+        costLabel: String(e.resourceCost ?? ""),
+        level: state.spellLevel,
+      });
+      if (effectRes.ok) {
+        effectResourceValue = effectRes.value;
+      } else {
+        errors.push(`[skill_spell_attack] Эффект ${idx + 1}: ${effectRes.error}`);
+      }
+    }
 
     const row: MigrationEffectRow = {
       id: effId,
@@ -255,6 +295,8 @@ export function buildMigrationPayload(state: SpellBuilderStateForMigration): Mig
       type_target: labelById(state.catalogLabelById, e.targetType),
       attack_focus: labelById(state.catalogLabelById, e.targetKind),
       attack_distance: attackDistance,
+      target_value_prim: targetValuePrim,
+      target_value_sec: targetValueSec,
       attack_type: labelByIdOrNull(state.catalogLabelById, e.attackType),
       direction_attack: labelByIdOrNull(state.catalogLabelById, e.attackDirection),
       covering_attack: !!e.coveringAttack,
@@ -275,6 +317,8 @@ export function buildMigrationPayload(state: SpellBuilderStateForMigration): Mig
 
       dep_talent: asNullableUuid(e.depTalent),
       replace_imp_eff: asNullableUuid(e.replaceImpactOrEffect),
+      add_imp_eff: asNullableUuid(e.addImpactOrEffect),
+      description: String(e.description ?? "").trim() || null,
     };
 
     // Required (red fields from your sheet):
@@ -284,6 +328,15 @@ export function buildMigrationPayload(state: SpellBuilderStateForMigration): Mig
     if (!e.impactType) errors.push(`[skill_spell_attack] Эффект ${idx + 1}: не заполнено "Тип воздействия"`);
 
     effectRows.push(row);
+    if (effectResourceType && effectResourceValue !== null) {
+      resourceRows.push({
+        id: uuid(),
+        id_spell_skill: effId,
+        resource_type: effectResourceType,
+        resource_value: effectResourceValue,
+        type: "spell_impact",
+      });
+    }
 
     // Conditions: must be 1+ row; default is "Нет условий" in UI.
     const conds = Array.isArray(e.conditions) && e.conditions.length ? e.conditions : [];
@@ -304,6 +357,7 @@ export function buildMigrationPayload(state: SpellBuilderStateForMigration): Mig
           id_eff: effId,
           condition: label,
           description: desc || null,
+          type: "spell_impact",
         });
         continue;
       }
@@ -315,6 +369,7 @@ export function buildMigrationPayload(state: SpellBuilderStateForMigration): Mig
           id_eff: effId,
           condition: label,
           description: null,
+          type: "spell_impact",
         });
         continue;
       }
@@ -324,6 +379,7 @@ export function buildMigrationPayload(state: SpellBuilderStateForMigration): Mig
         id_eff: effId,
         condition: label,
         description: null,
+        type: "spell_impact",
       });
     }
   });
@@ -341,44 +397,44 @@ export function buildMigrationPayload(state: SpellBuilderStateForMigration): Mig
   };
 }
 
-function formatRow(title: string, obj: Record<string, unknown>): string {
-  const lines: string[] = [];
-  lines.push(title);
-  for (const [k, v] of Object.entries(obj)) {
-    lines.push(`  - ${k}: ${v === null ? "null" : String(v)}`);
-  }
-  return lines.join("\n");
+function toSqlLiteral(value: unknown): string {
+  if (value === null || value === undefined) return "NULL";
+  if (typeof value === "number") return Number.isFinite(value) ? String(value) : "NULL";
+  if (typeof value === "boolean") return value ? "TRUE" : "FALSE";
+  const s = String(value).replace(/'/g, "''");
+  return `'${s}'`;
+}
+
+function buildInsertSql(table: string, rows: Array<Record<string, unknown>>): string {
+  if (!rows.length) return `-- ${table}: no rows`;
+
+  const columns = Object.keys(rows[0]);
+  const values = rows
+    .map((row) => `(${columns.map((col) => toSqlLiteral(row[col])).join(", ")})`)
+    .join(",\n");
+
+  return `INSERT INTO ${table} (${columns.join(", ")})\nVALUES\n${values};`;
 }
 
 export function buildMigrationReport(state: SpellBuilderStateForMigration): string {
   const payload = buildMigrationPayload(state);
 
   const now = new Date();
-  const header = [
-    "SPELL MIGRATION REPORT",
+  const sections: string[] = [
+    "SPELL MIGRATION SIMULATION (DB-SHAPED)",
     `generated_at: ${now.toISOString()}`,
-    "----------------------------------------",
-  ].join("\n");
+    "",
+    buildInsertSql("spells", [payload.spells as unknown as Record<string, unknown>]),
+    "",
+    buildInsertSql("spell_skill_resource", payload.spell_skill_resource as unknown as Array<Record<string, unknown>>),
+    "",
+    buildInsertSql("skill_spell_attack", payload.skill_spell_attack as unknown as Array<Record<string, unknown>>),
+    "",
+    buildInsertSql("conditions", payload.conditions as unknown as Array<Record<string, unknown>>),
+    "",
+    "[validation]",
+  ];
 
-  const sections: string[] = [];
-  sections.push(formatRow("[spells]", payload.spells as unknown as Record<string, unknown>));
-
-  sections.push("\n[spell_skill_resource]");
-  payload.spell_skill_resource.forEach((r, i) => {
-    sections.push(formatRow(`  row #${i + 1}`, r as unknown as Record<string, unknown>));
-  });
-
-  sections.push("\n[skill_spell_attack]");
-  payload.skill_spell_attack.forEach((r, i) => {
-    sections.push(formatRow(`  effect #${i + 1}`, r as unknown as Record<string, unknown>));
-  });
-
-  sections.push("\n[conditions]");
-  payload.conditions.forEach((r, i) => {
-    sections.push(formatRow(`  condition #${i + 1}`, r as unknown as Record<string, unknown>));
-  });
-
-  sections.push("\n[validation]");
   if (payload.errors.length) {
     sections.push("  status: FAIL");
     payload.errors.forEach((e) => sections.push(`  - ${e}`));
@@ -386,7 +442,7 @@ export function buildMigrationReport(state: SpellBuilderStateForMigration): stri
     sections.push("  status: OK");
   }
 
-  return [header, ...sections].join("\n") + "\n";
+  return sections.join("\n") + "\n";
 }
 
 export function downloadTextReport(filename: string, content: string): void {
@@ -404,6 +460,104 @@ export function downloadTextReport(filename: string, content: string): void {
   setTimeout(() => URL.revokeObjectURL(url), 2500);
 }
 
+function formatUnknownSubmitError(error: unknown): string {
+  if (error instanceof Error) return error.message || "Unknown error";
+  if (!error || typeof error !== "object") return String(error);
+
+  const obj = error as Record<string, unknown>;
+  const parts: string[] = [];
+
+  if (typeof obj.stage === "string" && obj.stage.trim()) {
+    parts.push(`stage=${obj.stage}`);
+  }
+  if (typeof obj.code === "string" && obj.code.trim()) {
+    parts.push(`code=${obj.code}`);
+  }
+  if (typeof obj.message === "string" && obj.message.trim()) {
+    parts.push(obj.message);
+  }
+  if (typeof obj.details === "string" && obj.details.trim()) {
+    parts.push(`details=${obj.details}`);
+  }
+  if (typeof obj.hint === "string" && obj.hint.trim()) {
+    parts.push(`hint=${obj.hint}`);
+  }
+
+  if (obj.error) {
+    const nested = formatUnknownSubmitError(obj.error);
+    if (nested && nested !== "[object Object]") {
+      parts.push(`cause=${nested}`);
+    }
+  }
+
+  if (parts.length) return parts.join(" | ");
+
+  try {
+    return JSON.stringify(error);
+  } catch {
+    return String(error);
+  }
+}
+
+export async function runSpellMigrationToDb(
+  state: SpellBuilderStateForMigration
+): Promise<{ ok: boolean; errors: string[]; spellId?: string }> {
+  const payload = buildMigrationPayload(state);
+  if (payload.errors.length) return { ok: false, errors: payload.errors };
+
+  const spellId = payload.spells.id;
+  let spellInserted = false;
+  let effectsInserted = false;
+  let resourcesInserted = false;
+  let conditionsInserted = false;
+
+  try {
+    const { error: spellError } = await supabase.from("spells").insert(payload.spells);
+    if (spellError) throw { stage: "spells.insert", error: spellError };
+    spellInserted = true;
+
+    if (payload.skill_spell_attack.length) {
+      const { error } = await supabase.from("skill_spell_attack").insert(payload.skill_spell_attack);
+      if (error) throw { stage: "skill_spell_attack.insert", error };
+      effectsInserted = true;
+    }
+
+    if (payload.spell_skill_resource.length) {
+      const { error } = await supabase.from("spell_skill_resource").insert(payload.spell_skill_resource);
+      if (error) throw { stage: "spell_skill_resource.insert", error };
+      resourcesInserted = true;
+    }
+
+    if (payload.conditions.length) {
+      const { error } = await supabase.from("conditions").insert(payload.conditions);
+      if (error) throw { stage: "conditions.insert", error };
+      conditionsInserted = true;
+    }
+
+    return { ok: true, errors: [], spellId };
+  } catch (e) {
+    const message = formatUnknownSubmitError(e);
+    const conditionIds = payload.conditions.map((c) => c.id);
+    const resourceIds = payload.spell_skill_resource.map((r) => r.id);
+
+    // Best-effort rollback for partially inserted payload.
+    try {
+      if (conditionsInserted && conditionIds.length) await supabase.from("conditions").delete().in("id", conditionIds);
+    } catch {}
+    try {
+      if (resourcesInserted && resourceIds.length) await supabase.from("spell_skill_resource").delete().in("id", resourceIds);
+    } catch {}
+    try {
+      if (effectsInserted) await supabase.from("skill_spell_attack").delete().eq("id_spell_skill", spellId);
+    } catch {}
+    try {
+      if (spellInserted) await supabase.from("spells").delete().eq("id", spellId);
+    } catch {}
+
+    return { ok: false, errors: [`[submit] ${message}`] };
+  }
+}
+
 export async function runSpellMigrationReport(state: SpellBuilderStateForMigration): Promise<{ ok: boolean; errors: string[] }> {
   const report = buildMigrationReport(state);
   const payload = buildMigrationPayload(state);
@@ -416,3 +570,4 @@ export async function runSpellMigrationReport(state: SpellBuilderStateForMigrati
 
   return { ok: payload.errors.length === 0, errors: payload.errors };
 }
+
