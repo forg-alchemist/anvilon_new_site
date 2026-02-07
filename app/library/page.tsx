@@ -1,4 +1,3 @@
-// app/library/page.tsx
 import { NavButton } from "@/components/NavButton";
 import { PageShell } from "@/components/PageShell";
 import { getPageArtUrl } from "@/lib/data/pageArt";
@@ -21,8 +20,8 @@ export default async function LibraryPage() {
         />
         <NavButton
           title="О мире"
-          subtitle="Скоро"
-          href={undefined}
+          subtitle="История и география"
+          href="/library/about-world"
           artUrl={worldArt}
         />
         <NavButton
