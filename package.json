@@ -1,6 +1,6 @@
 {
   "name": "anvilon",
-  "version": "0.1.2",
+  "version": "0.1.12",
   "private": true,
   "scripts": {
     "dev": "next dev",
