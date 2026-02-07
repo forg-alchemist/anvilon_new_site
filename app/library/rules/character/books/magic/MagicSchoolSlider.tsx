@@ -782,6 +782,7 @@ export function MagicSchoolSlider({
 
       const hasImpact = String(e.impact ?? '').trim().length > 0;
       const hasEffect = String(e.effect ?? '').trim().length > 0;
+      const effectDescription = String(e.description ?? '').trim();
 
       const valueOrEmpty = (v: unknown) => {
         if (v == null) return '';
@@ -862,15 +863,40 @@ export function MagicSchoolSlider({
       const mergedRows = [...compactRows, ...resourceRows, ...conditionRows];
 
       return (
-        <div className="grid grid-cols-[1fr] gap-3">
-          <div className="flex flex-wrap items-center gap-2">
+        <div className="grid grid-cols-[64px_minmax(0,1fr)] gap-2">
+          <div className="flex flex-col items-start gap-2">
             {renderArt('attack_category', e.attack_category)}
             {renderArt('type_target', e.type_target)}
             {renderArt('attack_focus', e.attack_focus)}
           </div>
-          <div>
+          <div className="min-w-0">
+            {effectDescription ? (
+              <div
+                className="mb-1.5 overflow-hidden rounded-lg border border-white/15"
+                style={{
+                  background: 'linear-gradient(180deg, rgba(255,255,255,0.03) 0%, rgba(3,10,24,0.18) 100%)',
+                  boxShadow: 'inset 0 1px 0 rgba(255,255,255,0.05)',
+                }}
+              >
+                <div className="border-b border-white/15 px-3 py-2 text-center">
+                  <div
+                    className="text-[12px] font-semibold uppercase tracking-[0.2em]"
+                    style={{
+                      background: 'linear-gradient(180deg, #f4dc9a 0%, #e7c47a 45%, #c79f4f 100%)',
+                      WebkitBackgroundClip: 'text',
+                      backgroundClip: 'text',
+                      color: 'transparent',
+                      textShadow: '0 2px 12px rgba(0,0,0,0.7)',
+                    }}
+                  >
+                    Описание
+                  </div>
+                </div>
+                <div className="px-3 py-2 text-[14px] leading-[1.45] text-white/92">{effectDescription}</div>
+              </div>
+            ) : null}
             {mergedRows.length ? (
-              <div className="space-y-2">
+              <div className="space-y-1.5">
                 {(() => {
                   const chunks: Array<typeof mergedRows> = [];
                   for (let i = 0; i < mergedRows.length; i += 4) {
@@ -879,15 +905,22 @@ export function MagicSchoolSlider({
                   return chunks.map((chunk, chunkIndex) => {
                     const cols = chunk.length;
                     return (
-                      <div key={`chunk-${chunkIndex}`} className="overflow-hidden rounded-xl border border-white/10">
+                      <div
+                        key={`chunk-${chunkIndex}`}
+                        className="overflow-hidden rounded-lg border border-white/15"
+                        style={{
+                          background: 'linear-gradient(180deg, rgba(255,255,255,0.025) 0%, rgba(3,10,24,0.16) 100%)',
+                          boxShadow: 'inset 0 1px 0 rgba(255,255,255,0.045)',
+                        }}
+                      >
                         <div
-                          className="grid border-b border-white/10"
+                          className="grid border-b border-white/15 bg-white/[0.02]"
                           style={{ gridTemplateColumns: `repeat(${cols}, minmax(0, 1fr))` }}
                         >
                           {chunk.map((r, i) => (
                             <div
                               key={`${r.key}-head`}
-                              className="flex items-center justify-center border-r border-white/10 p-3 text-center"
+                              className="flex min-h-[40px] items-center justify-center border-r border-white/15 px-2 py-1.5 text-center"
                               style={{ borderRightWidth: i === cols - 1 ? 0 : undefined }}
                             >
                               <div
@@ -909,10 +942,10 @@ export function MagicSchoolSlider({
                           {chunk.map((r, i) => (
                             <div
                               key={`${r.key}-val`}
-                              className="flex items-center justify-center border-r border-white/10 p-3 text-center"
+                              className="flex min-h-[44px] items-center justify-center border-r border-white/15 px-2 py-1.5 text-center"
                               style={{ borderRightWidth: i === cols - 1 ? 0 : undefined }}
                             >
-                              <div className="text-[15px] text-white/90">{r.value}</div>
+                              <div className="text-[14px] leading-[1.35] text-white/92">{r.value}</div>
                             </div>
                           ))}
                         </div>
