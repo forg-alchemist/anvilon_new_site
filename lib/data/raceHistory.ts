@@ -38,9 +38,10 @@ export async function getRaceHistoryBySlug(
   raceSlug: string
 ): Promise<RaceHistorySection[]> {
   const supabase = getSupabaseServerClient();
+  const raceDb = supabase.schema("race");
 
   /* --- heads --- */
-  const { data: heads, error: headsError } = await supabase
+  const { data: heads, error: headsError } = await raceDb
     .from("history_head")
     .select("*")
     .eq("slug", raceSlug)
@@ -56,7 +57,7 @@ export async function getRaceHistoryBySlug(
   const headSlugs = heads.map((h) => h.slug_head);
 
   /* --- entries --- */
-  const { data: entries, error: entriesError } = await supabase
+  const { data: entries, error: entriesError } = await raceDb
     .from("history")
     .select("*")
     .eq("slug", raceSlug)

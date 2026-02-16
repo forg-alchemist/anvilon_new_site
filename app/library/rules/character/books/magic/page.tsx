@@ -1,13 +1,16 @@
-// app/library/rules/character/books/magic/page.tsx
 import { PageShell } from "@/components/PageShell";
 import { getMagicSchools } from "@/lib/data/magicSchool";
 import { getMagicPaths } from "@/lib/data/magicPath";
 import { getCatalogBooks } from "@/lib/data/catalogs";
 import { getTalents } from "@/lib/data/talents";
 import { getMagicSpells, getSpellConditions, getSpellEffects, getSpellResources } from "@/lib/data/magicSpells";
+import { getServerLang } from "@/lib/i18n/server";
 import { MagicSchoolSlider } from "./MagicSchoolSlider";
 
 export default async function Page() {
+  const lang = await getServerLang();
+  const isEn = lang === "en";
+
   const schools = await getMagicSchools();
   const paths = await getMagicPaths();
   const catalogBooks = await getCatalogBooks();
@@ -17,35 +20,17 @@ export default async function Page() {
   const spellConditions = await getSpellConditions();
   const spellEffects = await getSpellEffects();
 
-
   return (
     <PageShell
-      title="Книга магии"
+      title={isEn ? "Spell Book" : "Книга магии"}
       backHref="/library/rules/character/books"
-      backLabel="Мастерства, навыки и заклинания"
+      backLabel={isEn ? "Masteries, Skills and Spells" : "Мастерства, навыки и заклинания"}
     >
       <div className="space-y-6">
         <div className="rounded-2xl border border-white/10 bg-white/[0.04] p-6 text-white/75">
-          <p>
-            Заклинания — это формулы и практики, позволяющие придавать магии определённый тип, стабильную нужную форму и
-            силу. Они играют ключевую роль в магической системе мира, предоставляя персонажам возможность взаимодействовать
-            с окружающей средой и влиять на неё с помощью магии. Заклинания можно улучшать при доступном потенциале
-            навыков/заклинаний. Максимальный уровень заклинания 5. Изучение каждого заклинания тратит 1 потенциал
-            способностей. Как правило, заклинания не имеют время восстановления, но тратят пункты маны для активации
-            и/или поддержания
-          </p>
-
-          <p className="mt-6">Заклинания могут быть приобретены:</p>
-          <ul className="mt-3 list-disc space-y-2 pl-6">
-            <li>С выбором расы и идти вместе с ней</li>
-            <li>С выбором класса и идти вместе с ним</li>
-            <li>С выбором школы магии</li>
-            <li>При снаряжении артефакта</li>
-          </ul>
-
-          <p className="mt-6">
-            Ниже представлена книга магии, в которой отображены все доступные заклинания и школы магии:
-          </p>
+          {isEn
+            ? "Spells are structured magical formulas and practices. Below is the complete spellbook with schools, paths and available spells."
+            : "Заклинания — это формулы и практики магии. Ниже представлена полная книга магии со школами, путями и доступными заклинаниями."}
         </div>
 
         <MagicSchoolSlider

@@ -24,8 +24,9 @@ export type RaceMap = {
  */
 export async function getRaceMapBySlug(slug: string): Promise<RaceMap | null> {
   const supabase = getSupabaseServerClient();
+  const raceDb = supabase.schema("race");
 
-  const { data, error } = await supabase
+  const { data, error } = await raceDb
     .from("race_map")
     .select("slug, bucket, map_path")
     .eq("slug", slug)

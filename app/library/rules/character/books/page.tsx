@@ -1,38 +1,42 @@
-// app/library/rules/character/books/page.tsx
 import { NavButton } from "@/components/NavButton";
 import { PageShell } from "@/components/PageShell";
-import { getPageArtUrl } from "@/lib/data/pageArt";
+import { getPageArt } from "@/lib/data/pageArt";
+import { getServerLang } from "@/lib/i18n/server";
 
 export default async function Page() {
-  const [skillsArt, spellsArt, professionsArt] = await Promise.all([
-    getPageArtUrl("SkillBook"),
-    getPageArtUrl("SpellBook"),
-    getPageArtUrl("MasteryBook"),
+  const lang = await getServerLang();
+  const isEn = lang === "en";
+
+  const [bookPage, skillsPage, spellsPage, masteryPage] = await Promise.all([
+    getPageArt("BookPage", lang),
+    getPageArt("SkillBook", lang),
+    getPageArt("SpellBook", lang),
+    getPageArt("MasteryBook", lang),
   ]);
 
   return (
     <PageShell
-      title="Мастерства, навыки и заклинания"
+      title={bookPage.name || (isEn ? "Masteries, Skills and Spells" : "Мастерства, навыки и заклинания")}
       backHref="/library/rules/character"
-      backLabel="Персонаж"
+      backLabel={isEn ? "Character" : "Персонаж"}
     >
       <div className="grid gap-6 md:grid-cols-3">
         <NavButton
-          title="Книга навыков"
+          title={skillsPage.name || (isEn ? "Skill Book" : "Книга навыков")}
           href="/library/rules/character/books/skills"
-          artUrl={skillsArt}
+          artUrl={skillsPage.artUrl}
         />
 
         <NavButton
-          title="Книга магии"
+          title={spellsPage.name || (isEn ? "Spell Book" : "Книга магии")}
           href="/library/rules/character/books/magic"
-          artUrl={spellsArt}
+          artUrl={spellsPage.artUrl}
         />
 
         <NavButton
-          title="Трактат профессий"
+          title={masteryPage.name || (isEn ? "Mastery Book" : "Трактат профессий")}
           href="/library/rules/character/books/professions"
-          artUrl={professionsArt}
+          artUrl={masteryPage.artUrl}
         />
       </div>
     </PageShell>

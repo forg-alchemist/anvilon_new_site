@@ -1,36 +1,43 @@
-// app/library/rules/character/page.tsx
 import { NavButton } from "@/components/NavButton";
 import { PageShell } from "@/components/PageShell";
-import { getPageArtUrl } from "@/lib/data/pageArt";
+import { getPageArt } from "@/lib/data/pageArt";
+import { getServerLang } from "@/lib/i18n/server";
 
 export default async function Page() {
-  const [aboutArt, bookArt, equipmentArt] = await Promise.all([
-    getPageArtUrl("AboutCharacter"),
-    getPageArtUrl("BookPage"),
-    getPageArtUrl("Equipment"),
+  const lang = await getServerLang();
+  const isEn = lang === "en";
+
+  const [aboutPage, bookPage, equipmentPage] = await Promise.all([
+    getPageArt("AboutCharacter", lang),
+    getPageArt("BookPage", lang),
+    getPageArt("Equipment", lang),
   ]);
 
   return (
-    <PageShell title="Персонаж" backHref="/library/rules" backLabel="Правила">
+    <PageShell
+      title={isEn ? "Character" : "Персонаж"}
+      backHref="/library/rules"
+      backLabel={isEn ? "Rules" : "Правила"}
+    >
       <div className="grid gap-6 md:grid-cols-3">
         <NavButton
-          title="Все о персонаже"
-          subtitle="Скоро"
+          title={aboutPage.name || (isEn ? "About the Character" : "Все о персонаже")}
+          subtitle={isEn ? "Soon" : "Скоро"}
           href={undefined}
-          artUrl={aboutArt}
+          artUrl={aboutPage.artUrl}
         />
 
         <NavButton
-          title="Мастерства, навыки и заклинания"
+          title={bookPage.name || (isEn ? "Masteries, Skills and Spells" : "Мастерства, навыки и заклинания")}
           href="/library/rules/character/books"
-          artUrl={bookArt}
+          artUrl={bookPage.artUrl}
         />
 
         <NavButton
-          title="Оружие, броня и снаряжение"
-          subtitle="Скоро"
+          title={equipmentPage.name || (isEn ? "Weapons, Armor and Equipment" : "Оружие, броня и снаряжение")}
+          subtitle={isEn ? "Soon" : "Скоро"}
           href={undefined}
-          artUrl={equipmentArt}
+          artUrl={equipmentPage.artUrl}
         />
       </div>
     </PageShell>

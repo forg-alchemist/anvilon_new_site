@@ -1,5 +1,6 @@
 import { getSupabaseServerClient } from "@/lib/supabase/server";
 import { getPublicStorageUrl } from "@/lib/supabase/publicUrl";
+import { DEFAULT_LANG, pickLocalizedText, type AppLang } from "@/lib/i18n/shared";
 
 export interface GameClass {
   id: string;
@@ -43,6 +44,22 @@ export interface GameClassWithSkills extends GameClass {
   skills: ClassSkill[];
 }
 
+interface GameClassDbRow {
+  id: string;
+  created_at: string;
+  slug: string;
+  slug_class: string;
+  bucket: string | null;
+  art_path: string | null;
+  initiative: string | number | null;
+  req_talent_slug: string | null;
+  req_talent: string | null;
+  name_ru: string | null;
+  name_en: string | null;
+  description_ru: string | null;
+  description_en: string | null;
+}
+
 function logSupabaseError(prefix: string, err: any) {
   try {
     console.error(prefix, {
@@ -58,13 +75,17 @@ function logSupabaseError(prefix: string, err: any) {
 }
 
 export async function getRaceClassesWithSkills(
-  raceSlug: string
+  raceSlug: string,
+  lang: AppLang = DEFAULT_LANG
 ): Promise<GameClassWithSkills[]> {
   const supabase = getSupabaseServerClient();
+  const handbook = supabase.schema("handbook");
 
-  const { data: classesRaw, error: classErr } = await supabase
+  const { data: classesRaw, error: classErr } = await handbook
     .from("class")
-    .select("*")
+    .select(
+      "id, created_at, slug, slug_class, bucket, art_path, initiative, req_talent_slug, req_talent, name_ru, name_en, description_ru, description_en"
+    )
     .eq("slug", raceSlug)
     .order("created_at", { ascending: true });
 
@@ -73,18 +94,31 @@ export async function getRaceClassesWithSkills(
     return [];
   }
 
-  const classes = (classesRaw ?? []).filter(
-    (c: any) => c?.slug_class && c.slug_class !== "unidentified"
-  ) as any[];
+  const classes = ((classesRaw ?? []) as GameClassDbRow[])
+    .filter((c) => c?.slug_class && c.slug_class !== "unidentified")
+    .map((c) => ({
+      id: c.id,
+      created_at: c.created_at,
+      slug: c.slug,
+      slug_class: c.slug_class,
+      bucket: c.bucket,
+      art_path: c.art_path,
+      initiative: c.initiative,
+      req_talent_slug: c.req_talent_slug,
+      req_talent: c.req_talent,
+      name: pickLocalizedText(c.name_ru, c.name_en, lang, c.slug_class),
+      description:
+        pickLocalizedText(c.description_ru, c.description_en, lang, null) || null,
+    })) satisfies GameClass[];
 
   if (classes.length === 0) return [];
 
   const classKeys = classes
-    .map((c) => String(c.slug_class || ""))
+    .map((c) => String(c.slug_class))
     .filter(Boolean);
 
   // 1) реальные навыки
-  const { data: skillsRaw, error: skillErr } = await supabase
+  const { data: skillsRaw, error: skillErr } = await handbook
     .from("class_skill")
     .select("id, created_at, slug_class, name_skill, description, art_path, bucket")
     .in("slug_class", classKeys)
@@ -93,7 +127,7 @@ export async function getRaceClassesWithSkills(
   if (skillErr) logSupabaseError("getRaceClassesWithSkills / class_skill (real):", skillErr);
 
   // 2) шаблон заглушки
-  const { data: placeholderRaw, error: placeholderErr } = await supabase
+  const { data: placeholderRaw, error: placeholderErr } = await handbook
     .from("class_skill")
     .select("id, created_at, slug_class, name_skill, description, art_path, bucket")
     .eq("slug_class", "unidentified")
@@ -147,6 +181,6 @@ export async function getRaceClassesWithSkills(
       }
     }
 
-    return { ...c, skills: out };
+    return { ...c, skills: out } satisfies GameClassWithSkills;
   });
 }

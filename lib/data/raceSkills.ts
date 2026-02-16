@@ -32,8 +32,9 @@ export async function getRaceSkillsBySlug(
   raceSlug: string
 ): Promise<RaceSkill[]> {
   const supabase = getSupabaseServerClient();
+  const raceDb = supabase.schema("race");
 
-  const { data, error } = await supabase
+  const { data, error } = await raceDb
     .from("race_skill")
     .select("slug, skill_num, name_skill, description_skill, art_path, bucket")
     .eq("slug", raceSlug)

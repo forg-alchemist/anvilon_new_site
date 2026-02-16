@@ -20,13 +20,95 @@ import type { MoonSquadItem, MoonSquadPersonItem } from "@/lib/data/moonSquad";
 import HistorySection from "./sections/HistorySection";
 import RaceClassesSection from "./sections/RaceClassesSection";
 
-const ABOUT_TABS: Array<{ key: AboutTabKey; label: string }> = [
-  { key: "desc", label: "Описание расы" },
-  { key: "phys", label: "Физиология" },
-  { key: "arch", label: "Архетипы и характер" },
-  { key: "relations", label: "Друзья и враги" },
-  { key: "names", label: "Имена" },
-];
+const ABOUT_TABS: AboutTabKey[] = ["desc", "phys", "arch", "relations", "names"];
+
+function getSectionLabel(key: RaceSectionKey, isEn: boolean): string {
+  if (isEn) {
+    switch (key) {
+      case "about":
+        return "ABOUT RACE";
+      case "skills":
+        return "RACIAL SKILLS";
+      case "r_classes":
+        return "RACIAL CLASSES";
+      case "houses":
+        return "GREAT HOUSES";
+      case "map":
+        return "TERRITORY MAP";
+      case "history":
+        return "RACE HISTORY";
+      case "religion":
+        return "RELIGION";
+      case "moon-clans":
+        return "MOON ELF CLANS";
+      case "legendary-squads":
+        return "LEGENDARY SQUADS";
+      case "institutions":
+        return "SOCIAL INSTITUTIONS";
+      default:
+        return String(key).toUpperCase();
+    }
+  }
+
+  switch (key) {
+    case "about":
+      return "О РАСЕ";
+    case "skills":
+      return "РАСОВЫЕ НАВЫКИ";
+    case "r_classes":
+      return "РАСОВЫЕ КЛАССЫ";
+    case "houses":
+      return "ВЕЛИКИЕ ДОМА";
+    case "map":
+      return "КАРТА ВЛАДЕНИЙ";
+    case "history":
+      return "ИСТОРИЯ РАСЫ";
+    case "religion":
+      return "РЕЛИГИЯ";
+    case "moon-clans":
+      return "РОДА ЛУННЫХ ЭЛЬФОВ";
+    case "legendary-squads":
+      return "ЛЕГЕНДАРНЫЕ ОТРЯДЫ";
+    case "institutions":
+      return "ВАЖНЫЕ СОЦИАЛЬНЫЕ ИНСТИТУТЫ";
+    default:
+      return String(key).toUpperCase();
+  }
+}
+
+function getAboutTabLabel(key: AboutTabKey, isEn: boolean): string {
+  if (isEn) {
+    switch (key) {
+      case "desc":
+        return "RACE DESCRIPTION";
+      case "phys":
+        return "PHYSIOLOGY";
+      case "arch":
+        return "ARCHETYPES AND CHARACTER";
+      case "relations":
+        return "FRIENDS AND ENEMIES";
+      case "names":
+        return "NAMES";
+      default:
+        return String(key).toUpperCase();
+    }
+  }
+
+  switch (key) {
+    case "desc":
+      return "ОПИСАНИЕ РАСЫ";
+    case "phys":
+      return "ФИЗИОЛОГИЯ";
+    case "arch":
+      return "АРХЕТИПЫ И ХАРАКТЕР";
+    case "relations":
+      return "ДРУЗЬЯ И ВРАГИ";
+    case "names":
+      return "ИМЕНА";
+    default:
+      return String(key).toUpperCase();
+  }
+}
 
 /**
  * Разделы страницы расы:
@@ -35,17 +117,17 @@ const ABOUT_TABS: Array<{ key: AboutTabKey; label: string }> = [
  *
  * ВАЖНО: comingSoon => раздел виден, но недоступен (плашка «СКОРО»).
  */
-function useRaceSections(slug: string) {
+function useRaceSections(slug: string, isEn: boolean) {
   return useMemo(() => {
     const rules = getRaceSectionsForSlug(slug);
 
     return rules.sections.map((s) => ({
       key: s.key,
-      label: s.label,
+      label: getSectionLabel(s.key, isEn),
       disabled: !!s.comingSoon,
       comingSoon: !!s.comingSoon,
     }));
-  }, [slug]);
+  }, [slug, isEn]);
 }
 
 
@@ -57,6 +139,7 @@ export default function RaceDetailClient({
   history,
   moonFamilies,
   moonSquads,
+  lang = "ru",
 }: {
   detail: RaceDetail;
   raceSkills: RaceSkill[];
@@ -65,8 +148,10 @@ export default function RaceDetailClient({
   history: RaceHistorySection[];
   moonFamilies: MoonElfFamilyItem[];
   moonSquads: Array<MoonSquadItem & { persons: MoonSquadPersonItem[] }>;
+  lang?: "ru" | "en";
 }) {
-  const sections = useRaceSections(detail.slug);
+  const isEn = lang === "en";
+  const sections = useRaceSections(detail.slug, isEn);
   const [section, setSection] = useState<RaceSectionKey>("about");
   const [aboutTab, setAboutTab] = useState<AboutTabKey>("desc");
 
@@ -228,7 +313,7 @@ export default function RaceDetailClient({
       if (!history || history.length === 0) {
         return (
           <div className="rounded-2xl border border-white/10 bg-white/[0.04] p-6 text-white/75">
-            Этот раздел пока пустой — заполним позже.
+            {isEn ? "This section is empty for now — we will fill it later." : "Этот раздел пока пустой — заполним позже."}
           </div>
         );
       }
@@ -239,7 +324,7 @@ export default function RaceDetailClient({
 if (section !== "about") {
       return (
         <div className="rounded-2xl border border-white/10 bg-white/[0.04] p-6 text-white/75">
-          Этот раздел пока пустой — заполним позже.
+          {isEn ? "This section is empty for now — we will fill it later." : "Этот раздел пока пустой — заполним позже."}
         </div>
       );
     }
@@ -382,7 +467,7 @@ if (section !== "about") {
                       fontFamily: "var(--font-text)",
                     }}
                   >
-                    Инициатива расы
+                    {isEn ? "Race initiative" : "Инициатива расы"}
                   </div>
                 </div>
               </div>
@@ -449,7 +534,7 @@ if (section !== "about") {
                             color: "rgba(214, 230, 255, 0.45)",
                           }}
                         >
-                          Скоро
+                          {isEn ? "Soon" : "Скоро"}
                         </div>
                       )}
                     </div>
@@ -487,13 +572,13 @@ if (section !== "about") {
           {section === "about" && (
             <div className="px-6 pt-6 lg:px-8 lg:pt-7">
               <div className="flex flex-wrap gap-3">
-                {ABOUT_TABS.map((t) => {
-                  const active = aboutTab === t.key;
+                {ABOUT_TABS.map((tabKey) => {
+                  const active = aboutTab === tabKey;
                   return (
                     <button
-                      key={t.key}
+                      key={tabKey}
                       type="button"
-                      onClick={() => setAboutTab(t.key)}
+                      onClick={() => setAboutTab(tabKey)}
                       className="rounded-full border px-2.5 py-1.5 transition"
                       style={{
                         borderColor: active
@@ -523,7 +608,7 @@ if (section !== "about") {
                             : "0 2px 14px rgba(0,0,0,0.8)",
                         }}
                       >
-                        {t.label}
+                        {getAboutTabLabel(tabKey, isEn)}
                       </span>
                     </button>
                   );
@@ -571,7 +656,7 @@ if (section !== "about") {
                             : "0 2px 14px rgba(0,0,0,0.8)",
                         }}
                       >
-                        {c.name}
+                        {(c.name ?? (c as any).name_ru ?? (c as any).name_en ?? c.slug_class)}
                       </span>
                     </button>
                   );

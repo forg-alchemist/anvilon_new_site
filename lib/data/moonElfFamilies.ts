@@ -44,9 +44,10 @@ type MoonElfFamilyRow = {
 
 export async function getMoonElfFamilies(): Promise<MoonElfFamilyItem[]> {
   const supabase = getSupabaseServerClient();
+  const raceDb = supabase.schema("race");
 
   // IMPORTANT: include `id` in select, иначе клики не будут открывать карточку
-  const res = await supabase
+  const res = await raceDb
     .from("moon_elf_fam")
     .select("*")
     .order("created_at", { ascending: true });

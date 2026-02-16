@@ -1,31 +1,21 @@
-// app/enter/page.tsx
-import { NavButton } from "@/components/NavButton";
 import { PageShell } from "@/components/PageShell";
-import { getPageArtUrl } from "@/lib/data/pageArt";
+import { getPageArt } from "@/lib/data/pageArt";
+import { getServerLang } from "@/lib/i18n/server";
+import { getPublicStorageUrl } from "@/lib/supabase/publicUrl";
+import EnterAuthPanel from "./EnterAuthPanel";
 
 export default async function EnterPage() {
-  const [masterLoginArt, playerLoginArt] = await Promise.all([
-    getPageArtUrl("MasterLogin"),
-    getPageArtUrl("PlayerLogin"),
-  ]);
+  const lang = await getServerLang();
+  const isEn = lang === "en";
+
+  const loginPage = await getPageArt("Login", lang);
+  const loginBackgroundUrl = getPublicStorageUrl("art", "page-art/LoginBackground.png");
 
   return (
-    <PageShell title="Выполнить вход" backHref="/" backLabel="Назад">
-      <div className="grid gap-6 md:grid-cols-2">
-        <NavButton
-          title="Войти как мастер"
-          subtitle="Скоро"
-          href={undefined}
-          artUrl={masterLoginArt}
-        />
-
-        <NavButton
-          title="Войти как игрок"
-          subtitle="Скоро"
-          href={undefined}
-          artUrl={playerLoginArt}
-        />
-      </div>
+    <PageShell
+      title={loginPage.name || (isEn ? "Login" : "Вход")}
+    >
+      <EnterAuthPanel isEn={isEn} backgroundUrl={loginBackgroundUrl} backLabel={isEn ? "Back" : "Назад"} />
     </PageShell>
   );
 }

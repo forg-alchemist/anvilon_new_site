@@ -53,13 +53,36 @@ function keySlug(v?: string | null) {
 
 export async function getMoonSquads(): Promise<MoonSquadItem[]> {
   const supabase = getSupabaseServerClient();
+  const raceDb = supabase.schema("race");
 
-  const res = await supabase
+  const res = await raceDb
     .from("moon_elf_squad")
     .select("id, created_at, slug_squad, name, bucket, art_path, description")
     .order("created_at", { ascending: true });
 
-  if (res.error) throw new Error(res.error.message);
+  if (res.error) {
+    // moon_elf_squad can be absent in the current schema layout.
+    if (res.error.code === "PGRST205" || res.error.code === "42P01") {
+      const persons = await getMoonSquadPersons();
+      const derived = new Map<string, MoonSquadItem>();
+      for (const p of persons) {
+        const slug = keySlug(p.slug_squad);
+        if (!slug || derived.has(slug)) continue;
+        derived.set(slug, {
+          id: `derived-${slug}`,
+          created_at: p.created_at ?? "",
+          slug_squad: slug,
+          name: slug.replace(/[-_]+/g, " "),
+          bucket: p.bucket ?? null,
+          art_path: p.art_path ?? null,
+          description: "",
+          artUrl: p.artUrl,
+        });
+      }
+      return Array.from(derived.values());
+    }
+    throw new Error(res.error.message);
+  }
 
   const rows = (res.data ?? []) as MoonSquadRow[];
 
@@ -72,8 +95,9 @@ export async function getMoonSquads(): Promise<MoonSquadItem[]> {
 
 export async function getMoonSquadPersons(): Promise<MoonSquadPersonItem[]> {
   const supabase = getSupabaseServerClient();
+  const raceDb = supabase.schema("race");
 
-  const res = await supabase
+  const res = await raceDb
     .from("moon_squad_pers")
     .select("id, created_at, slug_squad, name, bucket, art_path, description, character")
     .order("created_at", { ascending: true });

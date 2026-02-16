@@ -30,8 +30,9 @@ export type RaceInfoRow = {
 
 export async function getRaceInfoBySlug(slug: string): Promise<RaceInfoRow | null> {
   const supabase = getSupabaseServerClient();
+  const raceDb = supabase.schema("race");
 
-  const { data, error } = await supabase
+  const { data, error } = await raceDb
     .from("race_info")
     .select(
       "id, created_at, slug, tags, description, peculiarities, physiology, origin_tags, origin, sociality, archetype_tags, archetype, relationships_tags, relationships, names, surname, name_features, character"

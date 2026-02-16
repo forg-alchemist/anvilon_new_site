@@ -3,6 +3,8 @@ import type { Metadata } from "next";
 import { Geist_Mono, Yeseva_One, Forum } from "next/font/google";
 import "./globals.css";
 import { getPageArtUrl } from "@/lib/data/pageArt";
+import { LanguageSwitcherStub } from "@/components/LanguageSwitcherStub";
+import { getServerLang } from "@/lib/i18n/server";
 
 const geistMono = Geist_Mono({
   variable: "--font-geist-mono",
@@ -33,10 +35,11 @@ export default async function RootLayout({
 }: Readonly<{
   children: React.ReactNode;
 }>) {
-  const bgUrl = await getPageArtUrl("Global");
+  const lang = await getServerLang();
+  const bgUrl = await getPageArtUrl("Global", lang);
 
   return (
-    <html lang="ru" className="h-full overflow-x-hidden">
+    <html lang={lang} className="h-full overflow-x-hidden">
       <body
         className={`${geistMono.variable} ${headingFont.variable} ${bodyFont.variable} antialiased min-h-screen text-white overflow-x-hidden`}
       >
@@ -60,6 +63,7 @@ export default async function RootLayout({
               `,
             }}
           >
+            <LanguageSwitcherStub initialLang={lang} />
             {children}
           </div>
         </div>

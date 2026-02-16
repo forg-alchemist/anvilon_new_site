@@ -165,7 +165,7 @@ function FitTitle({ text, fontFamily, color }: FitTitleProps) {
 }
 
 
-function RaceCard({ race }: { race: Race }) {
+function RaceCard({ race, isEn }: { race: Race; isEn: boolean }) {
   const img = race.artUrl || "";
   const href = `/library/inhabitants/races/${race.slug}`;
   const isReady = (race.available ?? null) === null ? READY_SLUGS_FALLBACK.has(race.slug) : !!race.available;
@@ -450,7 +450,7 @@ function RaceCard({ race }: { race: Race }) {
                   e.currentTarget.style.boxShadow = ctaBaseShadow;
                 }}
               >
-                ВЫБРАТЬ РАСУ
+                {isEn ? "CHOOSE RACE" : "ВЫБРАТЬ РАСУ"}
               </Link>
             ) : (
               <div
@@ -467,7 +467,7 @@ function RaceCard({ race }: { race: Race }) {
                   textShadow: "0 2px 14px rgba(0,0,0,0.75)",
                 }}
               >
-                СКОРО
+                {isEn ? "SOON" : "СКОРО"}
               </div>
             )}
           </div>
@@ -477,14 +477,21 @@ function RaceCard({ race }: { race: Race }) {
   );
 }
 
-export default function RaceSlider({ races }: { races: Race[] }) {
+export default function RaceSlider({
+  races,
+  lang = "ru",
+}: {
+  races: Race[];
+  lang?: "ru" | "en";
+}) {
+  const isEn = lang === "en";
   const list = useMemo(() => (races ?? []).filter(Boolean), [races]);
   const [start, setStart] = useState(0);
 
   if (!list.length) {
     return (
       <div className="mx-auto w-full max-w-[520px] rounded-2xl border border-white/10 bg-white/[0.03] p-6 text-white/70">
-        Пока нет рас в базе данных.
+        {isEn ? "No races in database yet." : "Пока нет рас в базе данных."}
       </div>
     );
   }
@@ -556,7 +563,7 @@ export default function RaceSlider({ races }: { races: Race[] }) {
           */}
           <div className="grid gap-10 items-start justify-items-center px-14 grid-cols-1 md:grid-cols-2 xl:grid-cols-3">
             {visible.map((r) => (
-              <RaceCard key={`${r.id}-${start}`} race={r} />
+              <RaceCard key={`${r.id}-${start}`} race={r} isEn={isEn} />
             ))}
           </div>
 

@@ -1,32 +1,37 @@
-// app/library/inhabitants/page.tsx
 import { NavButton } from "@/components/NavButton";
 import { PageShell } from "@/components/PageShell";
-import { getPageArtUrl } from "@/lib/data/pageArt";
+import { getPageArt } from "@/lib/data/pageArt";
+import { getServerLang } from "@/lib/i18n/server";
 
 export default async function InhabitantsPage() {
-  const [racesArt, nationalitiesArt] = await Promise.all([
-    getPageArtUrl("Races"),
-    getPageArtUrl("Nationalities"),
+  const lang = await getServerLang();
+  const isEn = lang === "en";
+
+  const [libraryPage, residentsPage, racesPage, nationalitiesPage] = await Promise.all([
+    getPageArt("KnowledgeLibrary", lang),
+    getPageArt("Residents", lang),
+    getPageArt("Races", lang),
+    getPageArt("Nationalities", lang),
   ]);
 
   return (
     <PageShell
-      title="Жители Анвилона"
+      title={residentsPage.name || (isEn ? "Residents" : "Жители Анвилона")}
       backHref="/library"
-      backLabel="Библиотека знаний"
+      backLabel={libraryPage.name || (isEn ? "Knowledge Library" : "Библиотека знаний")}
     >
       <div className="grid gap-6 md:grid-cols-2">
         <NavButton
-          title="Расы"
-          subtitle="Все о расах"
+          title={racesPage.name || (isEn ? "Races" : "Расы")}
+          subtitle={isEn ? "All about races" : "Все о расах"}
           href="/library/inhabitants/races"
-          artUrl={racesArt}
+          artUrl={racesPage.artUrl}
         />
         <NavButton
-          title="Народности"
-          subtitle="Скоро"
+          title={nationalitiesPage.name || (isEn ? "Nationalities" : "Народности")}
+          subtitle={isEn ? "Soon" : "Скоро"}
           href={undefined}
-          artUrl={nationalitiesArt}
+          artUrl={nationalitiesPage.artUrl}
         />
       </div>
     </PageShell>

@@ -4,7 +4,8 @@ import { join } from "node:path";
 import { NavButton } from "@/components/NavButton";
 import { PageShell } from "@/components/PageShell";
 import { VersionChangelogButton } from "@/components/VersionChangelogButton";
-import { getPageArtUrl } from "@/lib/data/pageArt";
+import { getPageArt } from "@/lib/data/pageArt";
+import { getServerLang } from "@/lib/i18n/server";
 
 function getBuildVersion(): string {
   try {
@@ -61,19 +62,29 @@ function getChangelogForVersion(version: string): string {
 }
 
 export default async function Home() {
+  const lang = await getServerLang();
+  const isEn = lang === "en";
   const buildVersion = getBuildVersion();
   const lastUpdateLabel = getLastUpdateDateLabel();
   const versionChangelog = getChangelogForVersion(buildVersion);
-  const [loginArt, libraryArt] = await Promise.all([
-    getPageArtUrl("Login"),
-    getPageArtUrl("KnowledgeLibrary"),
+  const [loginPage, libraryPage] = await Promise.all([
+    getPageArt("Login", lang),
+    getPageArt("KnowledgeLibrary", lang),
   ]);
 
   return (
-    <PageShell title="Анвилон">
+    <PageShell title={isEn ? "Anvilon" : "Анвилон"}>
       <div className="grid gap-6 md:grid-cols-2">
-        <NavButton title="Выполнить вход" href="/enter" artUrl={loginArt} />
-        <NavButton title="Библиотека знаний" href="/library" artUrl={libraryArt} />
+        <NavButton
+          title={loginPage.name || (isEn ? "Login" : "Выполнить вход")}
+          href="/enter"
+          artUrl={loginPage.artUrl}
+        />
+        <NavButton
+          title={libraryPage.name || (isEn ? "Knowledge Library" : "Библиотека знаний")}
+          href="/library"
+          artUrl={libraryPage.artUrl}
+        />
       </div>
 
       <VersionChangelogButton

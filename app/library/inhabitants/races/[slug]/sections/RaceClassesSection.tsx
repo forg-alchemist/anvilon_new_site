@@ -10,6 +10,32 @@ function toUpperSafe(s?: string | null) {
   return (s ?? "").toUpperCase();
 }
 
+function getClassName(item: GameClassWithSkills): string {
+  const direct = (item.name ?? "").trim();
+  if (direct) return direct;
+
+  const ru = ((item as any).name_ru ?? "").toString().trim();
+  if (ru) return ru;
+
+  const en = ((item as any).name_en ?? "").toString().trim();
+  if (en) return en;
+
+  return item.slug_class;
+}
+
+function getClassDescription(item: GameClassWithSkills): string {
+  const direct = (item.description ?? "").toString().trim();
+  if (direct) return direct;
+
+  const ru = ((item as any).description_ru ?? "").toString().trim();
+  if (ru) return ru;
+
+  const en = ((item as any).description_en ?? "").toString().trim();
+  if (en) return en;
+
+  return "";
+}
+
 function normalizeSkills(skills: ClassSkill[], classKey: string): ClassSkill[] {
   const base = (skills ?? []).slice(0, 4);
   while (base.length < 4) {
@@ -200,6 +226,8 @@ export default function RaceClassesSection({
       : String(active.initiative);
 
   const req = active.req_talent ? toUpperSafe(active.req_talent) : "-";
+  const activeName = getClassName(active);
+  const activeDescription = getClassDescription(active);
 
   return (
     <div>
@@ -215,7 +243,7 @@ export default function RaceClassesSection({
               {artUrl ? (
                 <img
                   src={artUrl}
-                  alt={active.name}
+                  alt={activeName}
                   className="h-full w-full object-cover"
                   draggable={false}
                 />
@@ -262,7 +290,7 @@ export default function RaceClassesSection({
             </div>
           </div>
 
-          <TextBlock text={active.description ?? ""} />
+          <TextBlock text={activeDescription} />
         </div>
       </div>
 

@@ -1,16 +1,32 @@
-// app/library/rules/page.tsx
 import { NavButton } from "@/components/NavButton";
 import { PageShell } from "@/components/PageShell";
+import { getPageArt } from "@/lib/data/pageArt";
+import { getServerLang } from "@/lib/i18n/server";
 import { getPublicStorageUrl } from "@/lib/supabase/publicUrl";
 
-export default function RulesPage() {
+export default async function RulesPage() {
+  const lang = await getServerLang();
+  const isEn = lang === "en";
+
+  const [libraryPage, rulesPage] = await Promise.all([
+    getPageArt("KnowledgeLibrary", lang),
+    getPageArt("Rules", lang),
+  ]);
+
   const characterArt = getPublicStorageUrl("art", "page-art/CharacterPage.png");
   const nonBattleArt = getPublicStorageUrl("art", "page-art/NonBattleSutiationPage.jpg");
   const battleArt = getPublicStorageUrl("art", "page-art/BattleSutiationPage.jpg");
 
+  const introText = isEn
+    ? "This guide introduces game rules and core mechanics. It covers key systems and practical instructions. In case of contradictions, prioritize specific spell/skill descriptions over generic rules."
+    : "Данное руководство познакомит вас с правилами и механиками игры. Оно содержит инструкции и информацию по ключевым моментам, стараясь затрагивать максимально большое число аспектов. Во всех спорных случаях в приоритете описание и возможности конкретного заклинания или навыка.";
+
   return (
-    <PageShell title="Правила" backHref="/library" backLabel="Библиотека знаний">
-      {/* Intro text box — same typography as TextBlock in races */}
+    <PageShell
+      title={rulesPage.name || (isEn ? "Rules" : "Правила")}
+      backHref="/library"
+      backLabel={libraryPage.name || (isEn ? "Knowledge Library" : "Библиотека знаний")}
+    >
       <div
         className="rounded-2xl border border-white/10 bg-black/25 p-5 lg:p-3"
         style={{
@@ -22,22 +38,25 @@ export default function RulesPage() {
           whiteSpace: "pre-line",
         }}
       >
-        Данное руководство познакомит вас с правилами и механиками игры. Оно
-        содержит инструкции и информацию по ключевым моментам, стараясь
-        затрагивать максимально большое число аспектов. Это база, на которой
-        держатся механики. Некоторые механики будут прямо противоречить
-        информации из руководства, например возможности заклинаний или навыков.
-        Во всех таких случаях стоит руководствоваться принципом - частное над
-        общим и брать в приоритет описание и возможности заклинания или навыка
+        {introText}
       </div>
 
-      {/* Cards */}
       <div className="mt-8 grid grid-cols-1 gap-6 md:grid-cols-3">
-        <NavButton title="Персонаж" href="/library/rules/character" artUrl={characterArt} />
-
-        {/* Closed for now */}
-        <NavButton title="Внебоевые ситуации" subtitle="Скоро" artUrl={nonBattleArt} />
-        <NavButton title="Боевые ситуации" subtitle="Скоро" artUrl={battleArt} />
+        <NavButton
+          title={isEn ? "Character" : "Персонаж"}
+          href="/library/rules/character"
+          artUrl={characterArt}
+        />
+        <NavButton
+          title={isEn ? "Non-combat Situations" : "Внебоевые ситуации"}
+          subtitle={isEn ? "Soon" : "Скоро"}
+          artUrl={nonBattleArt}
+        />
+        <NavButton
+          title={isEn ? "Combat Situations" : "Боевые ситуации"}
+          subtitle={isEn ? "Soon" : "Скоро"}
+          artUrl={battleArt}
+        />
       </div>
     </PageShell>
   );

@@ -1,9 +1,7 @@
 import { PageShell } from "@/components/PageShell";
-import { getSupabaseServerClient } from "@/lib/supabase/server";
-import { getPublicStorageUrl } from "@/lib/supabase/publicUrl";
-
 import RaceDetailClient from "./RaceDetailClient";
 import type { RaceDetail, RaceSkill } from "./types";
+import { getRaceBySlug } from "@/lib/data/races";
 import { getRaceSkillsBySlug } from "@/lib/data/raceSkills";
 import { getRaceMapBySlug } from "@/lib/data/raceMap";
 import { getRaceInfoBySlug } from "@/lib/data/raceInfo";
@@ -12,56 +10,40 @@ import { getRaceHistoryBySlug } from "@/lib/data/raceHistory";
 import { getRaceClassesWithSkills } from "@/lib/data/classes";
 import { getMoonElfFamilies } from "@/lib/data/moonElfFamilies";
 import { getMoonSquadsWithPersons } from "@/lib/data/moonSquad";
+import { getServerLang } from "@/lib/i18n/server";
 
 function parseTags(raw?: string | null): string[] {
   if (!raw) return [];
-  // ✅ Единый разделитель тегов по проекту — ';'
   return raw
     .split(";")
     .map((t) => t.trim())
     .filter(Boolean);
 }
 
-type RaceRow = {
-  id: string;
-  slug: string;
-  name: string;
-  art_bucket: string | null;
-  art_path: string | null;
-  initiative: number | null;
-  available?: boolean | null;
-};
-
 export const dynamic = "force-dynamic";
 
-/**
- * Next.js 15+: params is async (Promise). We MUST unwrap it with await.
- */
 export default async function RacePage({
   params,
 }: {
   params: Promise<{ slug: string }>;
 }) {
   const { slug } = await params;
+  const lang = await getServerLang();
+  const isEn = lang === "en";
 
-  const supabase = getSupabaseServerClient();
-
-  // 1) races (база страницы)
-  const { data: race, error: raceErr } = await supabase
-    .from("races")
-    .select("id, slug, name, art_bucket, art_path, initiative, available")
-    .eq("slug", slug)
-    .maybeSingle();
-
-  if (raceErr) {
+  let race: Awaited<ReturnType<typeof getRaceBySlug>>;
+  try {
+    race = await getRaceBySlug(slug, lang);
+  } catch (error) {
+    const message = error instanceof Error ? error.message : String(error);
     return (
       <PageShell
-        title="Раса"
+        title={isEn ? "Race" : "Раса"}
         backHref="/library/inhabitants/races"
-        backLabel="Жители Анвилона"
+        backLabel={isEn ? "Races" : "Расы"}
       >
         <div className="rounded-2xl border border-red-500/25 bg-red-500/10 p-4 text-red-200">
-          Ошибка загрузки races по slug <b>{slug}</b>: {raceErr.message}
+          {isEn ? "Loading error for race slug" : "Ошибка загрузки расы по slug"} <b>{slug}</b>: {message}
         </div>
       </PageShell>
     );
@@ -70,24 +52,19 @@ export default async function RacePage({
   if (!race) {
     return (
       <PageShell
-        title="Раса не найдена"
+        title={isEn ? "Race not found" : "Раса не найдена"}
         backHref="/library/inhabitants/races"
-        backLabel="Жители Анвилона"
+        backLabel={isEn ? "Races" : "Расы"}
       >
         <div className="rounded-2xl border border-white/10 bg-white/[0.04] p-6">
-          В таблице <b>races</b> нет записи со slug <b>{slug}</b>.
+          {isEn ? "No race found with slug" : "В таблице races нет записи со slug"} <b>{slug}</b>.
         </div>
       </PageShell>
     );
   }
 
-  const r = race as RaceRow;
-  const artUrl = getPublicStorageUrl(r.art_bucket, r.art_path);
-
-  // 2) race_info (текстовые блоки) — НЕ валим страницу, если нет/ошибка
   const info = await getRaceInfoBySlug(slug).catch(() => null);
 
-  // 3) skills — мягко
   let raceSkills: RaceSkill[] = [];
   try {
     raceSkills = await getRaceSkillsBySlug(slug);
@@ -95,7 +72,6 @@ export default async function RacePage({
     raceSkills = [];
   }
 
-  // 4) history — мягко
   let history: Awaited<ReturnType<typeof getRaceHistoryBySlug>> = [];
   try {
     history = await getRaceHistoryBySlug(slug);
@@ -103,7 +79,6 @@ export default async function RacePage({
     history = [];
   }
 
-  // 5) great houses — пока только для высших эльфов
   let greatHouses: Awaited<ReturnType<typeof getGreatHouses>> = [];
   if (slug === "high-elf") {
     try {
@@ -113,15 +88,13 @@ export default async function RacePage({
     }
   }
 
-  // 6) расовые классы (class + class_skill) — мягко
   let raceClasses: Awaited<ReturnType<typeof getRaceClassesWithSkills>> = [];
   try {
-    raceClasses = await getRaceClassesWithSkills(slug);
+    raceClasses = await getRaceClassesWithSkills(slug, lang);
   } catch {
     raceClasses = [];
   }
 
-  // 7) map — мягко
   let mapUrl = "";
   try {
     const mapRow = await getRaceMapBySlug(slug);
@@ -130,25 +103,17 @@ export default async function RacePage({
     mapUrl = "";
   }
 
-  
-  // ======= Рода лунных эльфов (moon_elf_fam) =======
-  const moonFamilies = slug === "moon-elf" ? await getMoonElfFamilies() : [];
+  const moonFamilies = slug === "moon-elf" ? await getMoonElfFamilies().catch(() => []) : [];
+  const moonSquads = slug === "moon-elf" ? await getMoonSquadsWithPersons().catch(() => []) : [];
 
-  // ======= Легендарные отряды (moon_elf_squad + moon_squad_pers) =======
-  const moonSquads = slug === "moon-elf" ? await getMoonSquadsWithPersons() : [];
-
-const detail: RaceDetail = {
-    slug: r.slug,
-    name: r.name,
-    artUrl,
-    initiative: r.initiative ?? 0,
+  const detail: RaceDetail = {
+    slug: race.slug,
+    name: race.name,
+    artUrl: race.artUrl,
+    initiative: race.initiative ?? 0,
     mapUrl,
-
-    // ======= вкладки “О расе” из race_info =======
     about: {
-      // ✅ теги расы (капсулы над описанием)
       tags: parseTags(info?.tags),
-
       description: info?.description ?? "",
       features: info?.peculiarities ?? "",
       physiology: info?.physiology ?? "",
@@ -157,13 +122,9 @@ const detail: RaceDetail = {
       sociality: info?.sociality ?? "",
       archetypes: info?.archetype ?? "",
       relations: info?.relationships ?? "",
-
-      // ✅ теги и доп. текстовые поля (все TEXT в БД)
       archetypeTags: parseTags(info?.archetype_tags),
       character: info?.character ?? "",
       relationshipsTags: parseTags(info?.relationships_tags),
-
-      // ✅ Имена — по порядку: names → surname → name_features
       names: info?.names ?? "",
       surname: info?.surname ?? "",
       nameFeatures: info?.name_features ?? "",
@@ -172,10 +133,10 @@ const detail: RaceDetail = {
 
   return (
     <PageShell
-      title={r.name}
+      title={race.name}
       backHref="/library/inhabitants/races"
-      backLabel="Расы"
-          >
+      backLabel={isEn ? "Races" : "Расы"}
+    >
       <RaceDetailClient
         detail={detail}
         raceSkills={raceSkills}
@@ -184,6 +145,7 @@ const detail: RaceDetail = {
         history={history}
         moonFamilies={moonFamilies}
         moonSquads={moonSquads}
+        lang={lang}
       />
     </PageShell>
   );

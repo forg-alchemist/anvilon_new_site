@@ -67,16 +67,17 @@ export type GreatHouseItem = GreatHouseRow & {
  */
 export async function getGreatHouses(): Promise<GreatHouseItem[]> {
   const supabase = getSupabaseServerClient();
+  const raceDb = supabase.schema("race");
 
   const [housesRes, councilRes] = await Promise.all([
-    supabase
+    raceDb
       .from("great_houses")
       .select(
         "id, created_at, house, name_house, bucket, art_path, description, bonus_art_path, bonus, tradition"
       )
       .order("created_at", { ascending: true }),
 
-    supabase
+    raceDb
       .from("council")
       .select(
         "id, created_at, bucket, art_path, house, number, name, description, character, policy_direction_tags, allies_tags"
